@@ -1,14 +1,11 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
-using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using Windows.Security.Cryptography.Core;
 using Windows.UI.Core;
 
 namespace WindowsGoodbye
@@ -30,7 +27,6 @@ namespace WindowsGoodbye
         public readonly Guid DeviceId;
         public readonly byte[] DeviceKey;
         public readonly byte[] AuthKey;
-        public readonly byte[] PairKey;
 
         private readonly UdpClient _udpClient;
         private Task<DevicePairingResult> _task;
@@ -40,8 +36,7 @@ namespace WindowsGoodbye
         {
             DeviceKey = deviceKey;
             AuthKey = authKey;
-
-            PairKey = CryptoTools.GenerateAESKey();
+            
             DeviceId = Guid.NewGuid();
 
             _udpClient = new UdpClient(DevicePairingPort)
@@ -56,7 +51,6 @@ namespace WindowsGoodbye
             stream.Write(DeviceId.ToByteArray());
             stream.Write(DeviceKey);
             stream.Write(AuthKey);
-            stream.Write(PairKey);
 
             var payload = Convert.ToBase64String(stream.ToArray());
             return PairingPrefix + payload;

@@ -22,9 +22,17 @@ namespace WindowsGoodbye
     /// </summary>
     public sealed partial class MainPage : Page
     {
+        public static MainPage Instance;
+
         public MainPage()
         {
             this.InitializeComponent();
+            Instance = this;
+        }
+
+        public void PairDeviceDetected()
+        {
+
         }
     }
 }

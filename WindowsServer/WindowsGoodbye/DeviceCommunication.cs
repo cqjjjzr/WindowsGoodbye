@@ -19,10 +19,12 @@ namespace WindowsGoodbye
 
     class DevicePairingContext
     {
-        public const int DevicePairingPort = 26817;
+        public const int DevicePairingMulticastPort = 26817;
+        public const int DevicePairingResultPort = 26818;
         public readonly IPAddress DevicePairingMulticastGroupAddress = IPAddress.Parse("225.67.76.67");
         public const string PairingPrefix = "wingb://pair?$";
         public const string PairingRequestPrefix = "wingb://pair_req?";
+        public const string PairingFinishPrefix = "wingb://pair_finish?";
 
         public readonly Guid DeviceId;
         public readonly byte[] DeviceKey;
@@ -39,7 +41,7 @@ namespace WindowsGoodbye
             
             DeviceId = Guid.NewGuid();
 
-            _udpClient = new UdpClient(DevicePairingPort)
+            _udpClient = new UdpClient(DevicePairingMulticastPort)
             {
                 EnableBroadcast = false
             };
@@ -96,7 +98,8 @@ namespace WindowsGoodbye
                         return new DevicePairingResult
                         {
                             DeviceFriendName = friendlyName,
-                            DeviceModelName = modelName
+                            DeviceModelName = modelName,
+                            DeviceEndPoint = result.RemoteEndPoint
                         };
                     }
                     catch (Exception e)
@@ -112,10 +115,18 @@ namespace WindowsGoodbye
         {
             _cancellation.Cancel();
         }
+
+        public void FinishPairing(DevicePairingResult previousResult, string computerInfo)
+        {
+            var payload = Convert.ToBase64String(Encoding.UTF8.GetBytes(computerInfo));
+            var bytes = Encoding.UTF8.GetBytes(PairingFinishPrefix + payload);
+            new UdpClient(DevicePairingResultPort).SendAsync(bytes, bytes.Length, previousResult.DeviceEndPoint);
+        }
     }
 
     class DevicePairingResult
     {
         public string DeviceFriendName, DeviceModelName;
+        public IPEndPoint DeviceEndPoint;
     }
 }

@@ -3,7 +3,7 @@ package com.github.teamclc.windowsgoodbye;
 import java.util.UUID;
 
 public class PCInfo {
-    public static final int KEYS_LENGTH = 16;
+    public static final int KEYS_LENGTH = 32;
 
     private UUID deviceID;
     private byte[] deviceKey;

@@ -1,5 +1,6 @@
 package com.github.teamclc.windowsgoodbye.utils;
 
+import java.nio.ByteBuffer;
 import java.util.UUID;
 
 public class UUIDUtils {
@@ -17,5 +18,12 @@ public class UUIDUtils {
             lsb = (lsb << 8) | (bytes[i] & 0xff);
 
         return new UUID(msb, lsb);
+    }
+
+    public static byte[] toBytes(UUID uuid) {
+        ByteBuffer bb = ByteBuffer.wrap(new byte[16]);
+        bb.putLong(uuid.getMostSignificantBits());
+        bb.putLong(uuid.getLeastSignificantBits());
+        return bb.array();
     }
 }

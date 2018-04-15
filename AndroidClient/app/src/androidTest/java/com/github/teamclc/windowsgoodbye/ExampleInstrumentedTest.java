@@ -1,4 +1,4 @@
-package com.cyl18.windowsgoodbye;
+package com.github.teamclc.windowsgoodbye;
 
 import android.content.Context;
 import android.support.test.InstrumentationRegistry;
@@ -21,6 +21,6 @@ public class ExampleInstrumentedTest {
         // Context of the app under test.
         Context appContext = InstrumentationRegistry.getTargetContext();
 
-        assertEquals("com.cyl18.windowsgoodbye", appContext.getPackageName());
+        assertEquals("com.github.teamclc.windowsgoodbye", appContext.getPackageName());
     }
 }

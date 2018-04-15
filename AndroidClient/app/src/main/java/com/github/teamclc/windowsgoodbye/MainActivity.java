@@ -1,4 +1,4 @@
-package com.cyl18.windowsgoodbye;
+package com.github.teamclc.windowsgoodbye;
 
 import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;

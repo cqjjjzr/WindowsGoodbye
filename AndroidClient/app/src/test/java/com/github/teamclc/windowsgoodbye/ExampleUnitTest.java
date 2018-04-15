@@ -1,4 +1,4 @@
-package com.cyl18.windowsgoodbye;
+package com.github.teamclc.windowsgoodbye;
 
 import org.junit.Test;
 

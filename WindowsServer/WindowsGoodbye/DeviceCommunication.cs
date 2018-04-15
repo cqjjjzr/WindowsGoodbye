@@ -1,11 +1,13 @@
 ﻿using System;
 using System.Diagnostics;
 using System.IO;
+using System.Linq.Expressions;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Windows.ApplicationModel.Resources;
 using Windows.UI.Core;
 
 namespace WindowsGoodbye
@@ -29,6 +31,7 @@ namespace WindowsGoodbye
         public readonly Guid DeviceId;
         public readonly byte[] DeviceKey;
         public readonly byte[] AuthKey;
+        public readonly byte[] PairEncryptKey;
 
         private readonly UdpClient _udpClient;
         private Task<DevicePairingResult> _task;
@@ -38,7 +41,8 @@ namespace WindowsGoodbye
         {
             DeviceKey = deviceKey;
             AuthKey = authKey;
-            
+
+            PairEncryptKey = CryptoTools.GenerateAESKey();
             DeviceId = Guid.NewGuid();
 
             _udpClient = new UdpClient(DevicePairingMulticastPort)
@@ -67,45 +71,53 @@ namespace WindowsGoodbye
             {
                 while (true)
                 {
-                    try
+                    var receiveTask = _udpClient.ReceiveAsync();
+                    receiveTask.Wait(_cancellation.Token);
+                    token.ThrowIfCancellationRequested();
+                    if (receiveTask.Exception != null)
                     {
-                        var receiveTask = _udpClient.ReceiveAsync();
-                        receiveTask.Wait(_cancellation.Token);
-                        token.ThrowIfCancellationRequested();
-                        var result = receiveTask.Result;
-                        
-                        var info = Encoding.UTF8.GetString(result.Buffer);
-                        if (!info.StartsWith(PairingRequestPrefix) || info.Length <= PairingRequestPrefix.Length)
-                            continue;
-                        var payload = info.Substring(PairingRequestPrefix.Length + 1);
-                        var stream = new MemoryStream(Convert.FromBase64String(payload));
-                            
-                        if (stream.Length <= Utils.GuidLength) continue;
-                            
-                        var reader = new BinaryReader(stream, Encoding.UTF8);
-                        var deviceIdBytes = reader.ReadBytes(Utils.GuidLength);
-                        var deviceId = new Guid(deviceIdBytes);
-                        if (deviceId != DeviceId) continue;
+                        Debug.Write(receiveTask.Exception);
+                        continue;
+                    }
+                    var result = receiveTask.Result;
+
+                    var info = Encoding.UTF8.GetString(result.Buffer);
+                    if (!info.StartsWith(PairingRequestPrefix) || info.Length <= PairingRequestPrefix.Length)
+                        continue;
+                    var payload = info.Substring(PairingRequestPrefix.Length + 1);
+                    var rawBytes = Convert.FromBase64String(payload);
+                    if (rawBytes.Length <= Utils.GuidLength) continue;
+                    var deviceIdBytes = new byte[Utils.GuidLength];
+                    rawBytes.CopyTo(deviceIdBytes, Utils.GuidLength);
+                    var deviceId = new Guid(deviceIdBytes);
+                    if (deviceId != DeviceId) continue;
+
+                    // 注意下方导致的任何错误都必须直接退出Pair过程并发送通知
+                    token.ThrowIfCancellationRequested();
+                    var encryptedLen = rawBytes.Length - Utils.GuidLength;
+                    var encryptedData = new byte[encryptedLen];
+
+                    rawBytes.CopyTo(encryptedData, encryptedLen);
+                    var decryptedData = CryptoTools.DecryptAES(encryptedData, PairEncryptKey);
 
 #pragma warning disable CS4014 // 由于此调用不会等待，因此在调用完成前将继续执行当前方法
-                        MainPage.Instance.Dispatcher.RunAsync(CoreDispatcherPriority.Normal,
-                            () => MainPage.Instance.PairDeviceDetected());
+                    MainPage.Instance.Dispatcher.RunAsync(CoreDispatcherPriority.Normal,
+                        () => MainPage.Instance.PairDeviceDetected());
 #pragma warning restore CS4014 // 由于此调用不会等待，因此在调用完成前将继续执行当前方法
+                    if (decryptedData.Length < 2) throw new PairingException(Utils.GetBackgroundI18n("Pairing.Exception.BadResponse"));
+                    int friendlyNameLen = encryptedData[0];
+                    int modelNameLen = encryptedData[1];
+                    if (decryptedData.Length != 2 + friendlyNameLen + modelNameLen) throw new PairingException(Utils.GetBackgroundI18n("Pairing.Exception.BadResponse"));
+                    
+                    var friendlyName = Encoding.UTF8.GetString(decryptedData, 2, friendlyNameLen);
+                    var modelName = Encoding.UTF8.GetString(decryptedData, 2 + friendlyNameLen, modelNameLen);
 
-                        var friendlyName = reader.ReadString();
-                        var modelName =  reader.ReadString();
-
-                        return new DevicePairingResult
-                        {
-                            DeviceFriendName = friendlyName,
-                            DeviceModelName = modelName,
-                            DeviceEndPoint = result.RemoteEndPoint
-                        };
-                    }
-                    catch (Exception e)
+                    return new DevicePairingResult
                     {
-                        Debug.Write(e);
-                    }
+                        DeviceFriendName = friendlyName,
+                        DeviceModelName = modelName,
+                        DeviceEndPoint = result.RemoteEndPoint
+                    };
                 }
             }, _cancellation.Token);
             return _task;
@@ -118,9 +130,22 @@ namespace WindowsGoodbye
 
         public void FinishPairing(DevicePairingResult previousResult, string computerInfo)
         {
-            var payload = Convert.ToBase64String(Encoding.UTF8.GetBytes(computerInfo));
+            var payload = Convert.ToBase64String(CryptoTools.EncryptAES(Encoding.UTF8.GetBytes(computerInfo), PairEncryptKey));
             var bytes = Encoding.UTF8.GetBytes(PairingFinishPrefix + payload);
             new UdpClient(DevicePairingResultPort).SendAsync(bytes, bytes.Length, previousResult.DeviceEndPoint);
+        }
+    }
+
+    class PairingException: Exception
+    {
+        public PairingException()
+        {
+
+        }
+
+        public PairingException(string message): base(message)
+        {
+            
         }
     }
 

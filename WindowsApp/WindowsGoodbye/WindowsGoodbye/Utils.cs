@@ -33,12 +33,12 @@ namespace WindowsGoodbye
     [SuppressMessage("ReSharper", "InconsistentNaming")]
     static class CryptoTools
     {
-        public const int AESKeyLength = 256;
+        public const int AESKeyLengthInBits = 256;
         public static readonly byte[] AESIV = { 0x43, 0x79, 0x43, 0x68, 0x61, 0x72, 0x6c, 0x69, 0x65, 0x4c, 0x61, 0x73, 0x6d, 0x43, 0x4c, 0x43 };
 
         public static byte[] GenerateAESKey()
         {
-            var buf = CryptographicBuffer.GenerateRandom(AESKeyLength);
+            var buf = CryptographicBuffer.GenerateRandom(AESKeyLengthInBits);
             CryptographicBuffer.CopyToByteArray(buf, out var ret);
             return ret;
         }

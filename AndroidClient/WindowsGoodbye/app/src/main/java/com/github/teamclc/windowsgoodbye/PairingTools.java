@@ -1,27 +1,19 @@
 package com.github.teamclc.windowsgoodbye;
 
+import android.bluetooth.BluetoothAdapter;
 import android.content.Context;
-import android.os.Build;
-import android.provider.Settings;
 import android.util.Base64;
-import android.widget.AbsListView;
 
 import com.github.teamclc.windowsgoodbye.utils.CryptoUtils;
 import com.github.teamclc.windowsgoodbye.utils.UUIDUtils;
 import com.jaredrummler.android.device.DeviceName;
 
 import java.io.ByteArrayOutputStream;
-import java.io.IOError;
 import java.io.IOException;
 import java.net.DatagramPacket;
-import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.MulticastSocket;
-import java.net.SocketException;
-import java.net.SocketTimeoutException;
 import java.net.UnknownHostException;
-import java.time.Instant;
-import java.util.Arrays;
 import java.util.UUID;
 
 public class PairingTools {
@@ -57,11 +49,13 @@ public class PairingTools {
         System.arraycopy(payloadBytes, 81, pairingEncryptKey, 0, 32);
 
         // TODO: Show toast: Connecting
-        requestPair(deviceID, deviceKey, authKey, pairingEncryptKey, context);
+
+        PCInfo pcInfo = new PCInfo(deviceID, deviceKey, authKey);
+        requestPair(pcInfo, pairingEncryptKey, context);
     }
 
-    private static void requestPair(UUID deviceID, byte[] deviceKey, byte[] authKey, byte[] pairingEncryptKey, Context context) throws IOException {
-        String friendlyName = Settings.Secure.getString(context.getContentResolver(), "bluetooth_name");
+    private static void requestPair(PCInfo pcInfo, byte[] pairingEncryptKey, Context context) throws IOException {
+        String friendlyName = BluetoothAdapter.getDefaultAdapter().getName();
         String modelName = DeviceName.getDeviceName();
         byte[] friendlyNameBytes = friendlyName.substring(0, Math.max(64, friendlyName.length())).getBytes();
         byte[] modelNameBytes = modelName.substring(0, Math.max(64, modelName.length())).getBytes();
@@ -71,7 +65,7 @@ public class PairingTools {
         stream.write(friendlyNameBytes);
         stream.write(modelNameBytes);
         byte[] encryptedData = CryptoUtils.encrypt(stream.toByteArray(), pairingEncryptKey);
-        byte[] uuidBytes = UUIDUtils.toBytes(deviceID);
+        byte[] uuidBytes = UUIDUtils.toBytes(pcInfo.getDeviceID());
 
         byte[] payloadBytes = new byte[encryptedData.length + 16];
         System.arraycopy(uuidBytes, 0, payloadBytes, 0, uuidBytes.length);
@@ -83,27 +77,6 @@ public class PairingTools {
         multicastSocket.joinGroup(PAIRING_MULTICAST_ADDR);
         multicastSocket.send(new DatagramPacket(data, data.length));
 
-        waitingForPairResponse(deviceID, deviceKey, authKey, pairingEncryptKey, context);
-    }
-
-    private static final int RECEIVE_BUFFER_SIZE = 1024;
-    private static final int TIMEOUT = 30 * 1000;
-    private static void waitingForPairResponse(UUID deviceID, byte[] deviceKey, byte[] authKey, byte[] pairingEncryptKey, Context context) throws IOException {
-        DatagramSocket udpSocket = new DatagramSocket(PAIRING_RESULT_PORT);
-        udpSocket.setSoTimeout(TIMEOUT);
-        long startTimeMillis = System.currentTimeMillis();
-        byte[] buf = new byte[RECEIVE_BUFFER_SIZE];
-        DatagramPacket receivePacket = new DatagramPacket(buf, buf.length);
-        while (true) {
-            try {
-                udpSocket.receive(receivePacket);
-            } catch (SocketTimeoutException ex) {
-                //TODO: Timeout toast
-            }
-
-            byte[] data = receivePacket.getData();
-
-            break;
-        }
+        // TODO: Add pc to persist
     }
 }

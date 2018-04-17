@@ -71,6 +71,8 @@ namespace WindowsGoodbye
                 // Ensure the current window is active
                 Window.Current.Activate();
             }
+
+            MulticastListener.StartListening();
         }
 
         /// <summary>
@@ -95,6 +97,8 @@ namespace WindowsGoodbye
             var deferral = e.SuspendingOperation.GetDeferral();
             //TODO: Save application state and stop any background activity
             deferral.Complete();
+
+            MulticastListener.StopListening();
         }
     }
 }

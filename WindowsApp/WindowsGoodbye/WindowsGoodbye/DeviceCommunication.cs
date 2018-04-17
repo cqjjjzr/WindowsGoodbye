@@ -23,21 +23,17 @@ namespace WindowsGoodbye
 
     class DevicePairingContext
     {
-        public const int DevicePairingMulticastPort = 26817;
-        public const int DevicePairingResultPort = 26818;
+        public static volatile DevicePairingContext ActivePairingContext = null;
+
+        public const int DeviceUnicastPort = 26818;
         public readonly IPAddress DevicePairingMulticastGroupAddress = IPAddress.Parse("225.67.76.67");
         public const string PairingPrefix = "wingb://pair?";
-        public const string PairingRequestPrefix = "wingb://pair_req?";
         public const string PairingFinishPrefix = "wingb://pair_finish?";
 
         public readonly Guid DeviceId;
         public readonly byte[] DeviceKey;
         public readonly byte[] AuthKey;
         public readonly byte[] PairEncryptKey;
-
-        private readonly UdpClient _udpClient;
-        private Task<DevicePairingResult> _task;
-        private CancellationTokenSource _cancellation;
 
         public DevicePairingContext(byte[] deviceKey, byte[] authKey)
         {
@@ -46,11 +42,6 @@ namespace WindowsGoodbye
 
             PairEncryptKey = CryptoTools.GenerateAESKey();
             DeviceId = Guid.NewGuid();
-
-            _udpClient = new UdpClient(DevicePairingMulticastPort)
-            {
-                EnableBroadcast = false
-            };
         }
 
         public string GeneratePairData()
@@ -59,78 +50,50 @@ namespace WindowsGoodbye
             stream.Write(DeviceId.ToByteArray());
             stream.Write(DeviceKey);
             stream.Write(AuthKey);
+            stream.Write(PairEncryptKey);
 
             var payload = Convert.ToBase64String(stream.ToArray());
             return PairingPrefix + payload;
         }
 
-        public Task<DevicePairingResult> StartPairingListeningAsync()
+        public void ProcessPairingRequest(string pairPayload, IPEndPoint resultRemoteEndPoint)
         {
-            _udpClient.JoinMulticastGroup(DevicePairingMulticastGroupAddress);
-            _cancellation = new CancellationTokenSource();
-            var token = _cancellation.Token;
-            _task = Task.Run(() =>
-            {
-                while (true)
-                {
-                    var receiveTask = _udpClient.ReceiveAsync();
-                    receiveTask.Wait(token);
-                    token.ThrowIfCancellationRequested();
-                    if (receiveTask.Exception != null)
-                    {
-                        Debug.Write(receiveTask.Exception);
-                        continue;
-                    }
-                    var result = receiveTask.Result;
+            var rawBytes = Convert.FromBase64String(pairPayload);
+            if (rawBytes.Length <= Utils.GuidLength) return;
+            var deviceIdBytes = new byte[Utils.GuidLength];
+            rawBytes.CopyTo(deviceIdBytes, Utils.GuidLength);
+            var deviceId = new Guid(deviceIdBytes);
+            if (deviceId != DeviceId) return;
 
-                    var info = Encoding.UTF8.GetString(result.Buffer);
-                    if (!info.StartsWith(PairingRequestPrefix) || info.Length <= PairingRequestPrefix.Length)
-                        continue;
-                    var payload = info.Substring(PairingRequestPrefix.Length + 1);
-                    var rawBytes = Convert.FromBase64String(payload);
-                    if (rawBytes.Length <= Utils.GuidLength) continue;
-                    var deviceIdBytes = new byte[Utils.GuidLength];
-                    rawBytes.CopyTo(deviceIdBytes, Utils.GuidLength);
-                    var deviceId = new Guid(deviceIdBytes);
-                    if (deviceId != DeviceId) continue;
+            // 注意由于已经检测到了设备，下方导致的任何错误都必须直接退出Pair过程并发送通知
+            var encryptedLen = rawBytes.Length - Utils.GuidLength;
+            var encryptedData = new byte[encryptedLen];
 
-                    // 注意由于已经检测到了设备，下方导致的任何错误都必须直接退出Pair过程并发送通知
-                    token.ThrowIfCancellationRequested();
-                    var encryptedLen = rawBytes.Length - Utils.GuidLength;
-                    var encryptedData = new byte[encryptedLen];
+            rawBytes.CopyTo(encryptedData, encryptedLen);
+            var decryptedData = CryptoTools.DecryptAES(encryptedData, PairEncryptKey);
 
-                    rawBytes.CopyTo(encryptedData, encryptedLen);
-                    var decryptedData = CryptoTools.DecryptAES(encryptedData, PairEncryptKey);
-
-                    // 通知主界面开始配对过程
+            // 通知主界面开始配对过程
 #pragma warning disable CS4014 // 由于此调用不会等待，因此在调用完成前将继续执行当前方法
-                    MainPage.Instance.Dispatcher.RunAsync(CoreDispatcherPriority.Normal,
-                        () => MainPage.Instance.PairDeviceDetected());
+            MainPage.Instance.Dispatcher.RunAsync(CoreDispatcherPriority.Normal,
+                () => MainPage.Instance.PairDeviceDetected());
 #pragma warning restore CS4014 // 由于此调用不会等待，因此在调用完成前将继续执行当前方法
 
-                    if (decryptedData.Length < 2) throw new PairingException(Utils.GetBackgroundI18n("Pairing.Exception.BadResponse"));
-                    int friendlyNameLen = encryptedData[0];
-                    int modelNameLen = encryptedData[1];
-                    if (decryptedData.Length != 2 + friendlyNameLen + modelNameLen) throw new PairingException(Utils.GetBackgroundI18n("Pairing.Exception.BadResponse"));
-                    
-                    var friendlyName = Encoding.UTF8.GetString(decryptedData, 2, friendlyNameLen);
-                    var modelName = Encoding.UTF8.GetString(decryptedData, 2 + friendlyNameLen, modelNameLen);
+            if (decryptedData.Length < 2) throw new PairingException(Utils.GetBackgroundI18n("Pairing.Exception.BadResponse"));
+            int friendlyNameLen = encryptedData[0];
+            int modelNameLen = encryptedData[1];
+            if (decryptedData.Length != 2 + friendlyNameLen + modelNameLen) throw new PairingException(Utils.GetBackgroundI18n("Pairing.Exception.BadResponse"));
 
-                    token.ThrowIfCancellationRequested();
-                    return new DevicePairingResult
-                    {
-                        DeviceFriendName = friendlyName,
-                        DeviceModelName = modelName,
-                        DeviceEndPoint = result.RemoteEndPoint
-                    };
-                }
-            }, _cancellation.Token);
-            return _task;
-        }
+            var friendlyName = Encoding.UTF8.GetString(decryptedData, 2, friendlyNameLen);
+            var modelName = Encoding.UTF8.GetString(decryptedData, 2 + friendlyNameLen, modelNameLen);
 
-        public void StopPairingListening()
-        {
-            _cancellation.Cancel();
+            DevicePairingResult result = new DevicePairingResult
+            {
+                DeviceEndPoint = resultRemoteEndPoint,
+                DeviceFriendlyName = friendlyName,
+                DeviceModelName = modelName
+            };
+
+            // TODO: 通知CY的代码继续配对工作，使用result
         }
 
         public void FinishPairing(DevicePairingResult previousResult, string computerInfo)
@@ -139,15 +102,17 @@ namespace WindowsGoodbye
             // TODO: 这里是否需要设备返回，以保证没有发生配对之后手机断开造成电脑注册了手机却没有登记电脑信息的情况？
             var payload = Convert.ToBase64String(CryptoTools.EncryptAES(Encoding.UTF8.GetBytes(computerInfo), PairEncryptKey));
             var bytes = Encoding.UTF8.GetBytes(PairingFinishPrefix + payload);
-            new UdpClient(DevicePairingResultPort).SendAsync(bytes, bytes.Length, previousResult.DeviceEndPoint);
+            new UdpClient(DeviceUnicastPort).SendAsync(bytes, bytes.Length, previousResult.DeviceEndPoint);
+
+            // TODO: 通过ARP获取ID，保存所有数据
         }
     }
 
     class DeviceAuthContext
     {
-        public const int DeviceAuthMulticastPort = 26819;
-        public readonly IPAddress DeviceAuthMulticastGroupAddress = IPAddress.Parse("225.67.76.68");
-        public readonly IPEndPoint DeviceAuthMulticastEndpoint = new IPEndPoint(DeviceAuthMulticastPort, 26820);
+        public const int DeviceAuthMulticastPort = 26817;
+        public readonly IPAddress DeviceAuthMulticastGroupAddress = IPAddress.Parse("225.67.76.67");
+        public readonly IPEndPoint DeviceAuthMulticastEndpoint = new IPEndPoint(DeviceAuthMulticastPort, 26817);
         public const string CheckExistsPrefix = "wingb://auth_exists?";
         public const string CheckExistsResponsePrefix = "wingb://auth_exists_resp?";
         public const string AuthPrefix = "wingb://auth_req?";
@@ -208,7 +173,7 @@ namespace WindowsGoodbye
 
     class DevicePairingResult
     {
-        public string DeviceFriendName, DeviceModelName;
+        public string DeviceFriendlyName, DeviceModelName;
         public IPEndPoint DeviceEndPoint;
     }
 }

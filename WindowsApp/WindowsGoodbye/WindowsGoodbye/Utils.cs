@@ -3,12 +3,14 @@ using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
+using System.Net;
 using System.Resources;
 using System.Runtime.CompilerServices;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 using Windows.ApplicationModel.Resources;
+using Windows.Foundation;
 using Windows.Security.Cryptography;
 using Windows.Security.Cryptography.Core;
 using Windows.Storage.Streams;
@@ -83,6 +85,13 @@ namespace WindowsGoodbye
             aes.Key = key;
             aes.IV = AESIV;
             return aes;
+        }
+
+        public static void Sync(this IAsyncAction oper)
+        {
+            var task = oper.AsTask();
+            if (task.Status == TaskStatus.Created) task.Start();
+            task.Wait();
         }
     }
 }

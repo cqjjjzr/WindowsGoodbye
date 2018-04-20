@@ -5,6 +5,8 @@ using System.Linq;
 using System.Runtime.InteropServices.WindowsRuntime;
 using Windows.ApplicationModel;
 using Windows.ApplicationModel.Activation;
+using Windows.ApplicationModel.AppService;
+using Windows.ApplicationModel.Background;
 using Windows.Foundation;
 using Windows.Foundation.Collections;
 using Windows.UI.Xaml;
@@ -14,6 +16,7 @@ using Windows.UI.Xaml.Data;
 using Windows.UI.Xaml.Input;
 using Windows.UI.Xaml.Media;
 using Windows.UI.Xaml.Navigation;
+using GalaSoft.MvvmLight.Messaging;
 
 namespace WindowsGoodbye
 {
@@ -99,6 +102,20 @@ namespace WindowsGoodbye
             deferral.Complete();
 
             MulticastListener.StopListening();
+        }
+
+        public static AppServiceConnection IPHelperConnection = null;
+
+        protected override void OnBackgroundActivated(BackgroundActivatedEventArgs args)
+        {
+            base.OnBackgroundActivated(args);
+            if (args.TaskInstance.TriggerDetails is AppServiceTriggerDetails)
+            {
+                BackgroundTaskDeferral appServiceDeferral = args.TaskInstance.GetDeferral();
+                AppServiceTriggerDetails details = args.TaskInstance.TriggerDetails as AppServiceTriggerDetails;
+                IPHelperConnection = details.AppServiceConnection;
+                Messenger.Default.Send(new IPHelperReadyMessage());
+            }
         }
     }
 }

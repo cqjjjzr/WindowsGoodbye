@@ -86,6 +86,12 @@ namespace IPHelper
                     Environment.Exit(-1);
                     break;
             }
+
+            SyncIAsyncOperation(appServiceConnection.SendMessageAsync(new ValueSet
+            {
+                ["op"] = "exit",
+                ["status"] = "ok"
+            }));
         }
 
         private static void OpenConnection()
@@ -119,7 +125,7 @@ namespace IPHelper
         {
             SyncIAsyncOperation(appServiceConnection.SendMessageAsync(new ValueSet
             {
-                ["op"] = "addr",
+                ["op"] = "result",
                 ["mode"] = mode,
                 ["orig"] = processingIPAddr,
                 ["addr"] = addr

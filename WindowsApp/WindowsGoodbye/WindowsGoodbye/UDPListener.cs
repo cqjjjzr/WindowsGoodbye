@@ -82,7 +82,7 @@ namespace WindowsGoodbye
     {
         public const int DeviceUnicastPort = 26818;
 
-        private static readonly UdpClient _udpClient = new UdpClient(DeviceUnicastPort);
+        public static readonly UdpClient DeviceUnicastClient = new UdpClient(DeviceUnicastPort);
 
         private static Task _listeningTask;
         private static CancellationTokenSource _cancellationTokenSource;
@@ -96,7 +96,7 @@ namespace WindowsGoodbye
                 try
                 {
                     cancellationToken.ThrowIfCancellationRequested();
-                    var receiveTask = _udpClient.ReceiveAsync();
+                    var receiveTask = DeviceUnicastClient.ReceiveAsync();
                     receiveTask.Wait(cancellationToken);
                     cancellationToken.ThrowIfCancellationRequested();
                     if (receiveTask.IsFaulted) continue;
@@ -132,6 +132,8 @@ namespace WindowsGoodbye
             _listeningTask = null;
             _cancellationTokenSource = null;
         }
+
+
     }
 
     public static class UdpEventPublisher

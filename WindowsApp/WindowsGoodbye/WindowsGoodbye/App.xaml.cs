@@ -114,7 +114,7 @@ namespace WindowsGoodbye
                 BackgroundTaskDeferral appServiceDeferral = args.TaskInstance.GetDeferral();
                 AppServiceTriggerDetails details = args.TaskInstance.TriggerDetails as AppServiceTriggerDetails;
                 IPHelperConnection = details.AppServiceConnection;
-                Messenger.Default.Send(new IPHelperReadyMessage());
+                IPHelperUtils.ConnectionOpenEvent.Set();
             }
         }
     }

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
@@ -18,17 +19,13 @@ using Windows.UI.Core;
 
 namespace WindowsGoodbye
 {
-    class DeviceCommunication
-    {
-
-    }
-
-    class DevicePairingContext
+    public class DevicePairingContext
     {
         public const int DeviceUnicastPort = 26818;
         public readonly IPAddress DevicePairingMulticastGroupAddress = IPAddress.Parse("225.67.76.67");
         public const string PairingPrefix = "wingb://pair?";
         public const string PairingFinishPrefix = "wingb://pair_finish?";
+        public const string PairingTerminatePrefix = "wingb://pair_terminate";
 
         public readonly Guid DeviceId;
         public readonly byte[] DeviceKey;
@@ -95,25 +92,34 @@ namespace WindowsGoodbye
                 DeviceId = DeviceId,
                 DeviceKey = DeviceKey,
                 DeviceMacAddress = null,
-                DeviceModelName = modelName
+                DeviceModelName = modelName,
+                LastConnectedIPAddress = resultRemoteEndPoint.Address
             };
 
             // TODO: 调用CY代码开始交互操作系统
         }
 
-        public void FinishPairing(IPEndPoint deviceIpEndPoint, string computerInfo)
+        public void FinishPairing(DeviceInfo deviceInfo, string computerInfo)
         {
             // 配对完成，通知设备
             // TODO: 这里是否需要设备返回，以保证没有发生配对之后手机断开造成电脑注册了手机却没有登记电脑信息的情况？
             var payload = Convert.ToBase64String(CryptoTools.EncryptAES(Encoding.UTF8.GetBytes(computerInfo), PairEncryptKey));
             var bytes = Encoding.UTF8.GetBytes(PairingFinishPrefix + payload);
-            new UdpClient(DeviceUnicastPort).SendAsync(bytes, bytes.Length, deviceIpEndPoint);
+            UnicastListener.DeviceUnicastClient.SendAsync(bytes, bytes.Length, new IPEndPoint(deviceInfo.LastConnectedIPAddress, DeviceUnicastPort)).RunSynchronously();
             
-            // TODO: 通过ARP获取ID，保存所有数据
+            var macs = new HashSet<string>();
+            IPHelperUtils.GetMACFromIP(deviceInfo.LastConnectedIPAddress.ToString(), macs);
+            deviceInfo.DeviceMacAddress = macs.FirstOrDefault();
+        }
+
+        public void TerminatePairing(DeviceInfo deviceInfo)
+        {
+            var bytes = Encoding.UTF8.GetBytes(PairingTerminatePrefix);
+            UnicastListener.DeviceUnicastClient.SendAsync(bytes, bytes.Length, new IPEndPoint(deviceInfo.LastConnectedIPAddress, DeviceUnicastPort)).RunSynchronously();
         }
     }
 
-    class DeviceAuthContext
+    public class DeviceAuthContext
     {
         public const int DeviceAuthMulticastPort = 26817;
         public readonly IPAddress DeviceAuthMulticastGroupAddress = IPAddress.Parse("225.67.76.67");

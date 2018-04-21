@@ -7,11 +7,12 @@ using System.Threading.Tasks;
 
 namespace WindowsGoodbye
 {
-    class DeviceInfo
+    public class DeviceInfo
     {
         public Guid DeviceId;
         public byte[] DeviceKey, AuthKey;
         public string DeviceFriendlyName, DeviceModelName;
         public string DeviceMacAddress;
+        public IPAddress LastConnectedIPAddress;
     }
 }

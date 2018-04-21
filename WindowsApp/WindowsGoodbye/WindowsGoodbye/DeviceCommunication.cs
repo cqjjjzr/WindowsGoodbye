@@ -13,6 +13,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Windows.ApplicationModel.Payments;
 using Windows.ApplicationModel.Resources;
+using Windows.Networking;
 using Windows.Networking.Connectivity;
 using Windows.Security.Cryptography;
 using Windows.UI.Core;
@@ -55,7 +56,17 @@ namespace WindowsGoodbye
             return PairingPrefix + payload;
         }
 
-        public void ProcessPairingRequest(string pairPayload, IPEndPoint resultRemoteEndPoint)
+        public void StartListening()
+        {
+            UdpEventPublisher.PairingRequestReceived += ProcessPairingRequest;
+        }
+
+        public void StopListening()
+        {
+            UdpEventPublisher.PairingRequestReceived -= ProcessPairingRequest;
+        }
+
+        public void ProcessPairingRequest(string pairPayload, IPAddress remoteIP)
         {
             var rawBytes = Convert.FromBase64String(pairPayload);
             if (rawBytes.Length <= Utils.GuidLength) return;
@@ -93,29 +104,39 @@ namespace WindowsGoodbye
                 DeviceKey = DeviceKey,
                 DeviceMacAddress = null,
                 DeviceModelName = modelName,
-                LastConnectedIPAddress = resultRemoteEndPoint.Address
+                LastConnectedHost = new HostName(remoteIP.ToString())
             };
 
             // TODO: 调用CY代码开始交互操作系统
         }
 
-        public void FinishPairing(DeviceInfo deviceInfo, string computerInfo)
+        public async void FinishPairing(DeviceInfo deviceInfo, string computerInfo)
         {
             // 配对完成，通知设备
             // TODO: 这里是否需要设备返回，以保证没有发生配对之后手机断开造成电脑注册了手机却没有登记电脑信息的情况？
             var payload = Convert.ToBase64String(CryptoTools.EncryptAES(Encoding.UTF8.GetBytes(computerInfo), PairEncryptKey));
             var bytes = Encoding.UTF8.GetBytes(PairingFinishPrefix + payload);
-            UnicastListener.DeviceUnicastClient.SendAsync(bytes, bytes.Length, new IPEndPoint(deviceInfo.LastConnectedIPAddress, DeviceUnicastPort)).RunSynchronously();
+            var stream = await UnicastListener.DatagramSocket.GetOutputStreamAsync(deviceInfo.LastConnectedHost,
+                UnicastListener.DeviceUnicastPort.ToString());
+            Windows.Storage.Streams.Buffer buf = new Windows.Storage.Streams.Buffer((uint) bytes.Length);
+            bytes.CopyTo(buf);
+            await stream.WriteAsync(buf);
+            stream.Dispose();
             
             var macs = new HashSet<string>();
-            IPHelperUtils.GetMACFromIP(deviceInfo.LastConnectedIPAddress.ToString(), macs);
+            IPHelperUtils.GetMACFromIP(deviceInfo.LastConnectedHost.ToString(), macs);
             deviceInfo.DeviceMacAddress = macs.FirstOrDefault();
         }
 
-        public void TerminatePairing(DeviceInfo deviceInfo)
+        public async void TerminatePairing(DeviceInfo deviceInfo)
         {
             var bytes = Encoding.UTF8.GetBytes(PairingTerminatePrefix);
-            UnicastListener.DeviceUnicastClient.SendAsync(bytes, bytes.Length, new IPEndPoint(deviceInfo.LastConnectedIPAddress, DeviceUnicastPort)).RunSynchronously();
+            var stream = await UnicastListener.DatagramSocket.GetOutputStreamAsync(deviceInfo.LastConnectedHost,
+                UnicastListener.DeviceUnicastPort.ToString());
+            Windows.Storage.Streams.Buffer buf = new Windows.Storage.Streams.Buffer((uint)bytes.Length);
+            bytes.CopyTo(buf);
+            await stream.WriteAsync(buf);
+            stream.Dispose();
         }
     }
 
@@ -180,11 +201,5 @@ namespace WindowsGoodbye
         {
             
         }
-    }
-
-    class DevicePairingResult
-    {
-        public string DeviceFriendlyName, DeviceModelName;
-        public IPEndPoint DeviceEndPoint;
     }
 }

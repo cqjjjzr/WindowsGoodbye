@@ -9,6 +9,8 @@ using Windows.ApplicationModel.AppService;
 using Windows.ApplicationModel.Background;
 using Windows.Foundation;
 using Windows.Foundation.Collections;
+using Windows.Networking.Sockets;
+using Windows.Storage.Streams;
 using Windows.UI.Xaml;
 using Windows.UI.Xaml.Controls;
 using Windows.UI.Xaml.Controls.Primitives;
@@ -76,6 +78,7 @@ namespace WindowsGoodbye
             }
 
             MulticastListener.StartListening();
+            UnicastListener.StartListening();
         }
 
         /// <summary>
@@ -99,9 +102,9 @@ namespace WindowsGoodbye
         {
             var deferral = e.SuspendingOperation.GetDeferral();
             //TODO: Save application state and stop any background activity
-            deferral.Complete();
-
             MulticastListener.StopListening();
+            UnicastListener.StopListening();
+            deferral.Complete();
         }
 
         public static AppServiceConnection IPHelperConnection = null;

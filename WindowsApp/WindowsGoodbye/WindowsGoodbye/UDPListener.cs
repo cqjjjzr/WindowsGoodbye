@@ -29,8 +29,9 @@ namespace WindowsGoodbye
             };
 
             DatagramSocket.Control.MulticastOnly = true;
-            DatagramSocket.JoinMulticastGroup(DeviceMulticastGroupAddress);
+            
             await DatagramSocket.BindServiceNameAsync(DeviceMulticastPort.ToString());
+            DatagramSocket.JoinMulticastGroup(DeviceMulticastGroupAddress);
         }
 
         public static async void StopListening()

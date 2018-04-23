@@ -5,9 +5,43 @@
     xmlns:local="using:WindowsGoodbye"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:system="using:System"
     mc:Ignorable="d">
 
-    <Grid Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
+    <NavigationView x:Name="NaviView"
+                    ItemInvoked="NavView_OnItemInvoked" SelectionChanged="NavView_SelectionChanged">
 
-    </Grid>
+        <NavigationView.MenuItems>
+            <NavigationViewItem x:Uid="HomeNavItem" Content="Home" Tag="home">
+                <NavigationViewItem.Icon>
+                    <FontIcon Glyph="&#xE10F;"/>
+                </NavigationViewItem.Icon>
+            </NavigationViewItem>
+            <NavigationViewItem x:Uid="PairingNavItem" Icon="Link" Content="Pair" Tag="pair" Background="{x:Null}"/>
+        </NavigationView.MenuItems>
+        
+        <Frame x:Name="ContentFrame" Margin="24" Navigated="ContentFrame_Navigated">
+            <Frame.ContentTransitions>
+                <TransitionCollection>
+                    <NavigationThemeTransition/>
+                </TransitionCollection>
+            </Frame.ContentTransitions>
+        </Frame>
+
+        <NavigationView.HeaderTemplate>
+            <DataTemplate>
+                <Grid Margin="24,10,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition/>
+                    </Grid.ColumnDefinitions>
+                    <TextBlock x:Name="TitleText" Style="{StaticResource TitleTextBlockStyle}"
+                           FontSize="28"
+                           VerticalAlignment="Center"
+                           Text="{Binding}"/>
+                </Grid>
+            </DataTemplate>
+        </NavigationView.HeaderTemplate>
+
+    </NavigationView>
 </Page>

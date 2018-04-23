@@ -17,6 +17,7 @@ using Windows.Networking;
 using Windows.Networking.Connectivity;
 using Windows.Security.Cryptography;
 using Windows.UI.Core;
+using GalaSoft.MvvmLight.Messaging;
 
 namespace WindowsGoodbye
 {
@@ -28,10 +29,13 @@ namespace WindowsGoodbye
         public const string PairingFinishPrefix = "wingb://pair_finish?";
         public const string PairingTerminatePrefix = "wingb://pair_terminate";
 
+        public static DevicePairingContext ActiveDevicePairingContext;
+
         public readonly Guid DeviceId;
         public readonly byte[] DeviceKey;
         public readonly byte[] AuthKey;
         public readonly byte[] PairEncryptKey;
+        public HostName LastConnectedHost;
 
         public DevicePairingContext() : this(CryptographicBuffer.GenerateRandom(32).ToArray(), CryptographicBuffer.GenerateRandom(32).ToArray()) {  }
 
@@ -68,6 +72,7 @@ namespace WindowsGoodbye
 
         public void ProcessPairingRequest(string pairPayload, IPAddress remoteIP)
         {
+            LastConnectedHost = new HostName(remoteIP.ToString());
             var rawBytes = Convert.FromBase64String(pairPayload);
             if (rawBytes.Length <= Utils.GuidLength) return;
             var deviceIdBytes = new byte[Utils.GuidLength];
@@ -81,12 +86,7 @@ namespace WindowsGoodbye
 
             rawBytes.CopyTo(encryptedData, encryptedLen);
             var decryptedData = CryptoTools.DecryptAES(encryptedData, PairEncryptKey);
-
-            // 通知主界面开始配对过程
-#pragma warning disable CS4014 // 由于此调用不会等待，因此在调用完成前将继续执行当前方法
-            MainPage.Instance.Dispatcher.RunAsync(CoreDispatcherPriority.Normal,
-                () => MainPage.Instance.PairDeviceDetected());
-#pragma warning restore CS4014 // 由于此调用不会等待，因此在调用完成前将继续执行当前方法
+            
 
             if (decryptedData.Length < 2) throw new PairingException(Utils.GetBackgroundI18n("Pairing.Exception.BadResponse"));
             int friendlyNameLen = encryptedData[0];
@@ -96,6 +96,8 @@ namespace WindowsGoodbye
             var friendlyName = Encoding.UTF8.GetString(decryptedData, 2, friendlyNameLen);
             var modelName = Encoding.UTF8.GetString(decryptedData, 2 + friendlyNameLen, modelNameLen);
 
+            Messenger.Default.Send(new PairDeviceDetectedMessage(friendlyName, modelName));
+
             var info = new DeviceInfo
             {
                 AuthKey = AuthKey,
@@ -104,10 +106,10 @@ namespace WindowsGoodbye
                 DeviceKey = DeviceKey,
                 DeviceMacAddress = null,
                 DeviceModelName = modelName,
-                LastConnectedHost = new HostName(remoteIP.ToString())
+                LastConnectedHost = LastConnectedHost
             };
 
-            // TODO: 调用CY代码开始交互操作系统
+            // TODO: 调用我自己的代码开始交互操作系统
         }
 
         public async void FinishPairing(DeviceInfo deviceInfo, string computerInfo)
@@ -128,15 +130,28 @@ namespace WindowsGoodbye
             deviceInfo.DeviceMacAddress = macs.FirstOrDefault();
         }
 
-        public async void TerminatePairing(DeviceInfo deviceInfo)
+        public async void TerminatePairing()
         {
+            if (LastConnectedHost == null) return;
             var bytes = Encoding.UTF8.GetBytes(PairingTerminatePrefix);
-            var stream = await UnicastListener.DatagramSocket.GetOutputStreamAsync(deviceInfo.LastConnectedHost,
+            var stream = await UnicastListener.DatagramSocket.GetOutputStreamAsync(LastConnectedHost,
                 UnicastListener.DeviceUnicastPort.ToString());
             Windows.Storage.Streams.Buffer buf = new Windows.Storage.Streams.Buffer((uint)bytes.Length);
             bytes.CopyTo(buf);
             await stream.WriteAsync(buf);
             stream.Dispose();
+        }
+    }
+
+    public class PairDeviceDetectedMessage
+    {
+
+        public string DeviceFriendlyName, DeviceModelName;
+
+        public PairDeviceDetectedMessage(string deviceFriendlyName, string deviceModelName)
+        {
+            DeviceFriendlyName = deviceFriendlyName;
+            DeviceModelName = deviceModelName;
         }
     }
 
@@ -182,11 +197,6 @@ namespace WindowsGoodbye
                 Guid deviceId = new Guid(deviceIdBytes);
                 if (deviceId == DeviceId) return;
             }
-        }
-
-        public async Task RequestAuthAsync()
-        {
-
         }
     }
 

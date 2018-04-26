@@ -11,6 +11,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Windows.ApplicationModel.Resources;
 using Windows.Foundation;
+using Windows.Networking.Connectivity;
 using Windows.Security.Cryptography;
 using Windows.Security.Cryptography.Core;
 using Windows.Storage.Streams;
@@ -36,7 +37,7 @@ namespace WindowsGoodbye
 
         public static Brush Transparent = new SolidColorBrush {Opacity = 0.0};
         public static Brush Red = new SolidColorBrush(Colors.OrangeRed) { Opacity = 0.1 };
-        public static Brush GetBackgroundBrushBuEnabled(bool x)
+        public static Brush GetBackgroundBrushByEnabled(bool x)
         {
             return x ? Transparent : Red;
         }
@@ -45,21 +46,12 @@ namespace WindowsGoodbye
         {
             return x ? 1.0 : 0.75;
         }
-    }
 
-    public class DeviceInfoBrushConverter: IValueConverter {
-        public static Brush Transparent = new SolidColorBrush { Opacity = 0.0 };
-        public static Brush Red = new SolidColorBrush(Colors.OrangeRed) { Opacity = 15.0 };
-
-        public object Convert(object value, Type targetType, object parameter, string language)
+        public static string GetComputerInfo()
         {
-            if (!(value is bool)) return null;
-            return ((bool)value) ? Transparent : Red;
-        }
-
-        public object ConvertBack(object value, Type targetType, object parameter, string language)
-        {
-            throw new NotImplementedException();
+            var hostNames = NetworkInformation.GetHostNames();
+            var localName = hostNames.FirstOrDefault(name => name.DisplayName.Contains(".local"));
+            return (localName?.DisplayName ?? "no info").Replace(".local", "");
         }
     }
 

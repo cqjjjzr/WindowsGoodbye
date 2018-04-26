@@ -9,8 +9,6 @@ namespace WindowsGoodbye
     {
         [Key]
         public Guid DeviceId { get; set; }
-        public byte[] DeviceKey { get; set; }
-        public byte[] AuthKey { get; set; }
         private string _deviceFriendlyName = "";
         public string DeviceFriendlyName
         {

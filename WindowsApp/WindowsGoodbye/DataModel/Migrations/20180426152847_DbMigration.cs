@@ -27,9 +27,7 @@ namespace WindowsGoodbye.Migrations
                 columns: table => new
                 {
                     DeviceId = table.Column<Guid>(nullable: false),
-                    AuthKey = table.Column<byte[]>(nullable: true),
                     DeviceFriendlyName = table.Column<string>(nullable: true),
-                    DeviceKey = table.Column<byte[]>(nullable: true),
                     DeviceMacAddress = table.Column<string>(nullable: true),
                     DeviceModelName = table.Column<string>(nullable: true),
                     Enabled = table.Column<bool>(nullable: false),

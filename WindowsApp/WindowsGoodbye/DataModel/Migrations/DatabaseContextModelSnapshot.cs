@@ -38,11 +38,7 @@ namespace WindowsGoodbye.Migrations
                     b.Property<Guid>("DeviceId")
                         .ValueGeneratedOnAdd();
 
-                    b.Property<byte[]>("AuthKey");
-
                     b.Property<string>("DeviceFriendlyName");
-
-                    b.Property<byte[]>("DeviceKey");
 
                     b.Property<string>("DeviceMacAddress");
 

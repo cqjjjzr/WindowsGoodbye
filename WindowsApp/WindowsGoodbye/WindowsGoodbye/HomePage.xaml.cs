@@ -28,7 +28,6 @@ namespace WindowsGoodbye
     /// </summary>
     public sealed partial class HomePage : Page
     {
-        private readonly static DateTime TimeStampEpoch = new DateTime(1970, 1, 1);
         public List<DeviceInfo> DevicesSet = new List<DeviceInfo>();
         public HomePage()
         {

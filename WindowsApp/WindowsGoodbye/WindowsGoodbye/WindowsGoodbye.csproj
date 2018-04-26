@@ -119,9 +119,10 @@
     <AppxManifest Include="Package.appxmanifest">
       <SubType>Designer</SubType>
     </AppxManifest>
-    <PRIResource Include="BackgroundResources.resw" />
+    <PRIResource Include="strings\en-US\BackgroundResources.resw" />
     <PRIResource Include="strings\en-US\Resources.resw" />
     <PRIResource Include="strings\zh-CN\Resources.resw" />
+    <PRIResource Include="strings\zh-CN\BackgroundResources.resw" />
     <None Include="WindowsGoodbye_TemporaryKey.pfx" />
   </ItemGroup>
   <ItemGroup>

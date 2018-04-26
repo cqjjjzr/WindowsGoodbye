@@ -11,7 +11,7 @@ using WindowsGoodbye;
 namespace WindowsGoodbye.Migrations
 {
     [DbContext(typeof(DatabaseContext))]
-    [Migration("20180425054552_DbMigration")]
+    [Migration("20180426152847_DbMigration")]
     partial class DbMigration
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -39,11 +39,7 @@ namespace WindowsGoodbye.Migrations
                     b.Property<Guid>("DeviceId")
                         .ValueGeneratedOnAdd();
 
-                    b.Property<byte[]>("AuthKey");
-
                     b.Property<string>("DeviceFriendlyName");
-
-                    b.Property<byte[]>("DeviceKey");
 
                     b.Property<string>("DeviceMacAddress");
 

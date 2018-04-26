@@ -29,7 +29,6 @@ namespace WindowsGoodbye
     /// </summary>
     public sealed partial class PairingPage : Page
     {
-        
         private readonly BarcodeWriter _barcodeWriter;
 
         public PairingPage()
@@ -48,11 +47,17 @@ namespace WindowsGoodbye
             };
         }
         
-        private void Page_Loaded(object sender, RoutedEventArgs e)
+        private async void Page_Loaded(object sender, RoutedEventArgs e)
         {
-            if (DevicePairingContext.ActiveDevicePairingContext != null)
-                DevicePairingContext.ActiveDevicePairingContext.TerminatePairing();
-
+            try
+            {
+                if (DevicePairingContext.ActiveDevicePairingContext != null)
+                    await DevicePairingContext.ActiveDevicePairingContext.TerminatePairing();
+            }
+            catch (Exception exception)
+            {
+                Debug.Write(exception);
+            }
             var context = new DevicePairingContext();
             DevicePairingContext.ActiveDevicePairingContext = context;
 
@@ -69,18 +74,30 @@ namespace WindowsGoodbye
                      QRCodePanel.Visibility = Visibility.Collapsed;
                      ProgressRing.IsActive = true;
                      WaitingPanel.Visibility = Visibility.Visible;
-                     Messenger.Default.Unregister(this);
+                     Messenger.Default.Unregister<PairDeviceDetectedMessage>(this);
                  });
+            });
+            Messenger.Default.Register<PairingFailedMessage>(this, true, msg =>
+            {
+                FailedText.Text = msg.Reason;
+                QRCodePanel.Visibility = Visibility.Collapsed;
+                ProgressRing.IsActive = false;
+                WaitingPanel.Visibility = Visibility.Collapsed;
+                FailPanel.Visibility = Visibility.Visible;
+                Messenger.Default.Unregister(this);
+            });
+
+            Messenger.Default.Register<PairingFinishedMessage>(this, true, msg =>
+            {
+                QRCodePanel.Visibility = Visibility.Collapsed;
+                ProgressRing.IsActive = false;
+                WaitingPanel.Visibility = Visibility.Collapsed;
+                SuccessPanel.Visibility = Visibility.Visible;
+                Messenger.Default.Unregister(this);
             });
 
             context.StartListening();
             QRCodePanel.Visibility = Visibility.Visible;
-
-            ThreadPool.QueueUserWorkItem(state =>
-            {
-                Thread.Sleep(5000);
-                Messenger.Default.Send(new PairDeviceDetectedMessage("假的", "真的是假的"));
-            });
         }
 
         private ImageSource GenerateQRCode(string qrData)

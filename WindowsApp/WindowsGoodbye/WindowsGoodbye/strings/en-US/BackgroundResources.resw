@@ -117,7 +117,19 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
+  <data name="Pairing.DisabledByPolicy" xml:space="preserve">
+    <value>Windows Companion Device unlocking is disabled due to your group policy.</value>
+  </data>
   <data name="Pairing.Exception.BadResponse" xml:space="preserve">
     <value>Bad pairing request from the device.</value>
+  </data>
+  <data name="Pairing.Pin" xml:space="preserve">
+    <value>You need to set a PIN in Setting first.</value>
+  </data>
+  <data name="Pairing.Unknown" xml:space="preserve">
+    <value>Unknown pairing error. {0}</value>
+  </data>
+  <data name="Pairing.UserCanceled" xml:space="preserve">
+    <value>Pairing canceled.</value>
   </data>
 </root>

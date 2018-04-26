@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net;
@@ -8,11 +9,8 @@ using System.Runtime.InteropServices.WindowsRuntime;
 using System.Text;
 using System.Threading.Tasks;
 using Windows.Networking;
-using Windows.Networking.Connectivity;
 using Windows.Security.Cryptography;
-using Windows.Security.ExchangeActiveSyncProvisioning;
-using Windows.System;
-using Windows.System.Profile;
+using Windows.Storage.Streams;
 using GalaSoft.MvvmLight.Messaging;
 
 namespace WindowsGoodbye
@@ -28,14 +26,15 @@ namespace WindowsGoodbye
         public static DevicePairingContext ActiveDevicePairingContext;
 
         public readonly Guid DeviceId;
-        public readonly byte[] DeviceKey;
-        public readonly byte[] AuthKey;
+        public readonly IBuffer DeviceKey;
+        public readonly IBuffer AuthKey;
         public readonly byte[] PairEncryptKey;
         public HostName LastConnectedHost;
+        private volatile bool _isFinished = false;
 
-        public DevicePairingContext() : this(CryptographicBuffer.GenerateRandom(32).ToArray(), CryptographicBuffer.GenerateRandom(32).ToArray()) {  }
+        public DevicePairingContext() : this(CryptographicBuffer.GenerateRandom(32), CryptographicBuffer.GenerateRandom(32)) {  }
 
-        public DevicePairingContext(byte[] deviceKey, byte[] authKey)
+        public DevicePairingContext(IBuffer deviceKey, IBuffer authKey)
         {
             DeviceKey = deviceKey;
             AuthKey = authKey;
@@ -48,8 +47,8 @@ namespace WindowsGoodbye
         {
             var stream = new MemoryStream();
             stream.Write(DeviceId.ToByteArray());
-            stream.Write(DeviceKey);
-            stream.Write(AuthKey);
+            stream.Write(DeviceKey.ToArray());
+            stream.Write(AuthKey.ToArray());
             stream.Write(PairEncryptKey);
 
             var payload = Convert.ToBase64String(stream.ToArray());
@@ -84,10 +83,18 @@ namespace WindowsGoodbye
             var decryptedData = CryptoTools.DecryptAES(encryptedData, PairEncryptKey);
             
 
-            if (decryptedData.Length < 2) throw new PairingException(Utils.GetBackgroundI18n("Pairing.Exception.BadResponse"));
+            if (decryptedData.Length < 2)
+            {
+                FailPairing("Pairing.Exception.BadResponse");
+                return;
+            }
             int friendlyNameLen = encryptedData[0];
             int modelNameLen = encryptedData[1];
-            if (decryptedData.Length != 2 + friendlyNameLen + modelNameLen) throw new PairingException(Utils.GetBackgroundI18n("Pairing.Exception.BadResponse"));
+            if (decryptedData.Length != 2 + friendlyNameLen + modelNameLen)
+            {
+                FailPairing("Pairing.Exception.BadResponse");
+                return;
+            }
 
             var friendlyName = Encoding.UTF8.GetString(decryptedData, 2, friendlyNameLen);
             var modelName = Encoding.UTF8.GetString(decryptedData, 2 + friendlyNameLen, modelNameLen);
@@ -96,25 +103,39 @@ namespace WindowsGoodbye
 
             var info = new DeviceInfo
             {
-                AuthKey = AuthKey,
                 DeviceFriendlyName = friendlyName,
                 DeviceId = DeviceId,
-                DeviceKey = DeviceKey,
                 DeviceMacAddress = null,
                 DeviceModelName = modelName,
                 LastConnectedHost = LastConnectedHost.CanonicalName
             };
 
-            await WindowsHelloInterop.RegisterDevice(info);
-
-            var hostNames = NetworkInformation.GetHostNames();
-            var localName = hostNames.FirstOrDefault(name => name.DisplayName.Contains(".local"));
-            var computerName = localName?.DisplayName?.Replace(".local", "") ?? "no info";
-            FinishPairing(info, computerName);
+            try
+            {
+                await WindowsHelloInterop.RegisterDevice(info, DeviceKey, AuthKey);
+                FinishPairing(info, Utils.GetComputerInfo());
+                Messenger.Default.Send(new PairingFinishedMessage());
+            }
+            catch (OperationCanceledException ex)
+            {
+                switch (ex.Message)
+                {
+                    case "CanceledByUser": FailPairing("Pairing.UserCanceled"); break;
+                    case "PinSetupRequired": FailPairing("Pairing.Pin"); break;
+                    case "DisabledByPolicy": FailPairing("Pairing.DisabledByPolicy"); break;
+                    case "Failed": FailPairing("Pairing.Unknown"); break;
+                }
+            }
+            catch (Exception e)
+            {
+                Debug.Write(e);
+                FailPairing("Pairing.Unknown", e.ToString());
+            }
         }
 
         public async void FinishPairing(DeviceInfo deviceInfo, string computerInfo)
         {
+            if (_isFinished) return;
             // 配对完成，通知设备
             // TODO: 这里是否需要设备返回，以保证没有发生配对之后手机断开造成电脑注册了手机却没有登记电脑信息的情况？
             var payload = Convert.ToBase64String(CryptoTools.EncryptAES(Encoding.UTF8.GetBytes(computerInfo), PairEncryptKey));
@@ -127,26 +148,53 @@ namespace WindowsGoodbye
             stream.Dispose();
             
             var macs = new HashSet<string>();
-            IPHelperUtils.GetMACFromIP(deviceInfo.LastConnectedHost.ToString(), macs);
+            IPHelperUtils.GetMACFromIP(deviceInfo.LastConnectedHost, macs);
             deviceInfo.DeviceMacAddress = macs.FirstOrDefault();
+
+            DisposeKeys();
+            _isFinished = true;
         }
 
-        public async void TerminatePairing()
+        private async void FailPairing(string messageI18n, string append = "")
+        {
+            Messenger.Default.Send(new PairingFailedMessage { Reason = string.Format(Utils.GetBackgroundI18n(messageI18n), append) });
+            
+            await TerminatePairing();
+        }
+
+        public async Task TerminatePairing()
         {
             if (LastConnectedHost == null) return;
             var bytes = Encoding.UTF8.GetBytes(PairingTerminatePrefix);
-            var stream = await UnicastListener.DatagramSocket.GetOutputStreamAsync(LastConnectedHost,
-                UnicastListener.DeviceUnicastPort.ToString());
-            Windows.Storage.Streams.Buffer buf = new Windows.Storage.Streams.Buffer((uint)bytes.Length);
-            bytes.CopyTo(buf);
-            await stream.WriteAsync(buf);
-            stream.Dispose();
+            try
+            {
+                var stream = await UnicastListener.DatagramSocket.GetOutputStreamAsync(LastConnectedHost,
+                    UnicastListener.DeviceUnicastPort.ToString());
+                Windows.Storage.Streams.Buffer buf = new Windows.Storage.Streams.Buffer((uint)bytes.Length);
+                bytes.CopyTo(buf);
+                await stream.WriteAsync(buf);
+                stream.Dispose();
+            }
+            catch (Exception e)
+            {
+                Debug.Write(e);
+            }
+
+            DisposeKeys();
+            _isFinished = true;
+        }
+
+        private void DisposeKeys()
+        {
+            byte[] zeros = new byte[Math.Max(DeviceKey.Capacity, AuthKey.Capacity)];
+            Array.Clear(zeros, 0, zeros.Length);
+            zeros.CopyTo(DeviceKey);
+            zeros.CopyTo(AuthKey);
         }
     }
 
     public class PairDeviceDetectedMessage
     {
-
         public string DeviceFriendlyName, DeviceModelName;
 
         public PairDeviceDetectedMessage(string deviceFriendlyName, string deviceModelName)
@@ -201,16 +249,13 @@ namespace WindowsGoodbye
         }
     }
 
-    class PairingException: Exception
+    class PairingFailedMessage
     {
-        public PairingException()
-        {
+        public string Reason;
+    }
 
-        }
+    class PairingFinishedMessage
+    {
 
-        public PairingException(string message): base(message)
-        {
-            
-        }
     }
 }

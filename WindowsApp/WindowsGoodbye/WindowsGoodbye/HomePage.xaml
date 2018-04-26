@@ -15,7 +15,7 @@
             SelectionMode="None">
             <GridView.ItemTemplate>
                 <DataTemplate x:Name="DeviceInfoTemplate" x:DataType="local:DeviceInfo">
-                    <StackPanel Width="264" Height="120" Padding="12" Orientation="Horizontal" AutomationProperties.Name="{x:Bind DeviceFriendlyName}" Background="{x:Bind local:Utils.GetBackgroundBrushBuEnabled(Enabled)}" Opacity="{x:Bind local:Utils.GetOpacityByEnabled(Enabled)}">
+                    <StackPanel Width="264" Height="120" Padding="12" Orientation="Horizontal" AutomationProperties.Name="{x:Bind DeviceFriendlyName}" Background="{x:Bind local:Utils.GetBackgroundBrushByEnabled(Enabled)}" Opacity="{x:Bind local:Utils.GetOpacityByEnabled(Enabled)}">
                         <FontIcon Margin="0,6,0,0" FontSize="48" FontFamily="Segoe MDL2 Assets" FontWeight="Bold" Glyph="&#xE1C9;" VerticalAlignment="Top" />
                         <StackPanel Margin="16,1,0,0">
                             <TextBlock Width="176" Margin="0,0,0,2" TextWrapping="WrapWholeWords" TextTrimming="Clip" Text="{x:Bind DeviceFriendlyName}"/>

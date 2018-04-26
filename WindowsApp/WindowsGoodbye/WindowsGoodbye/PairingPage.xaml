@@ -23,6 +23,11 @@
             <TextBlock x:Uid="SuccessText" x:Name="SuccessText" HorizontalAlignment="Center" Text="Paired successfully!" TextWrapping="Wrap" VerticalAlignment="Top" Margin="0,16,0,0" RelativePanel.AlignHorizontalCenterWithPanel="True" TextAlignment="Center" RelativePanel.Below="Success" FontSize="36"/>
 
         </RelativePanel>
+        <RelativePanel x:Name="FailPanel" HorizontalAlignment="Center" VerticalAlignment="Center" Visibility="Collapsed">
+            <FontIcon x:Name="Fail" HorizontalAlignment="Center" Height="250" VerticalAlignment="Center" Width="250" RelativePanel.AlignHorizontalCenterWithPanel="True" Glyph="&#xEA39;" FontSize="250" Foreground="#FFFF3B30" />
+            <TextBlock x:Name="FailedText" HorizontalAlignment="Center" Text="Paired failed!" TextWrapping="Wrap" VerticalAlignment="Top" Margin="0,16,0,0" RelativePanel.AlignHorizontalCenterWithPanel="True" TextAlignment="Center" RelativePanel.Below="Fail" FontSize="36"/>
+
+        </RelativePanel>
 
 
     </Grid>

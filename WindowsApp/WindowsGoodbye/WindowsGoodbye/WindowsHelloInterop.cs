@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Runtime.InteropServices.WindowsRuntime;
 using System.Text;
@@ -12,7 +13,7 @@ namespace WindowsGoodbye
 {
     public class WindowsHelloInterop
     {
-        public static async Task RegisterDevice(DeviceInfo info)
+        public static async Task RegisterDevice(DeviceInfo info, IBuffer deviceKey, IBuffer authKey)
         {
             var registrationResult =
                 await SecondaryAuthenticationFactorRegistration.RequestStartRegisteringDeviceAsync(
@@ -22,12 +23,24 @@ namespace WindowsGoodbye
                     SecondaryAuthenticationFactorDeviceCapabilities.StoreKeys,
                     info.DeviceFriendlyName, // deviceFriendlyName: max 64 wide characters. For example: John's card
                     info.DeviceModelName, // deviceModelNumber: max 32 wide characters. The app should read the model number from device.
-                    info.DeviceKey.AsBuffer(),
-                    info.AuthKey.AsBuffer());
-            
+                    deviceKey,
+                    authKey);
+
             if (registrationResult.Status != SecondaryAuthenticationFactorRegistrationStatus.Started)
                 throw new OperationCanceledException(registrationResult.Status.ToString());
             await registrationResult.Registration.FinishRegisteringDeviceAsync(null); //config data limited to 4096 bytes
+        }
+
+        public static async Task UnregisterDevice(DeviceInfo info)
+        {
+            try
+            {
+                await SecondaryAuthenticationFactorRegistration.UnregisterDeviceAsync(info.DeviceId.ToString());
+            }
+            catch (Exception e)
+            {
+                Debug.Write(e);
+            }
         }
     }
 }

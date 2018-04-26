@@ -117,6 +117,9 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
+  <data name="DeleteButton.Content" xml:space="preserve">
+    <value>Delete Device</value>
+  </data>
   <data name="DeviceIdHint.Text" xml:space="preserve">
     <value>Device GUID:</value>
   </data>
@@ -125,9 +128,6 @@
   </data>
   <data name="DeviceModelNameHint.Text" xml:space="preserve">
     <value>Model Name:</value>
-  </data>
-  <data name="FriendlyNameCantBeEmpty" xml:space="preserve">
-    <value>Device friendly name can't be blank!</value>
   </data>
   <data name="HomeNavItem.Content" xml:space="preserve">
     <value>Home</value>
@@ -141,8 +141,26 @@
   <data name="SuccessText.Text" xml:space="preserve">
     <value>Paired successfully!</value>
   </data>
+  <data name="TimeHeader.Text" xml:space="preserve">
+    <value>Unlock Time</value>
+  </data>
   <data name="WaitingText.Text" xml:space="preserve">
     <value>New device found:{0}({1})</value>
+  </data>
+  <data name="_Cancel" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
+  <data name="_Delete" xml:space="preserve">
+    <value>Delete</value>
+  </data>
+  <data name="_DeleteConfirmText" xml:space="preserve">
+    <value>Deleting {0}({1}). After deleting you'll be unable to unlock the computer with the PC, are you sure?</value>
+  </data>
+  <data name="_DeleteConfirmTitle" xml:space="preserve">
+    <value>Are you sure?</value>
+  </data>
+  <data name="_FriendlyNameCantBeEmpty" xml:space="preserve">
+    <value>Device friendly name can't be blank!</value>
   </data>
   <data name="_Title.DeviceDetailsPage" xml:space="preserve">
     <value>Device Details</value>

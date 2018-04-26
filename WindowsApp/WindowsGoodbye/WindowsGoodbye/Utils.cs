@@ -14,6 +14,9 @@ using Windows.Foundation;
 using Windows.Security.Cryptography;
 using Windows.Security.Cryptography.Core;
 using Windows.Storage.Streams;
+using Windows.UI;
+using Windows.UI.Xaml.Data;
+using Windows.UI.Xaml.Media;
 
 namespace WindowsGoodbye
 {
@@ -26,9 +29,37 @@ namespace WindowsGoodbye
             stream.Write(buffer, 0, buffer.Length);
         }
 
-        public static String GetBackgroundI18n(string id)
+        public static string GetBackgroundI18n(string id)
         {
             return ResourceLoader.GetForCurrentView("BackgroundResources").GetString(id);
+        }
+
+        public static Brush Transparent = new SolidColorBrush {Opacity = 0.0};
+        public static Brush Red = new SolidColorBrush(Colors.OrangeRed) { Opacity = 0.1 };
+        public static Brush GetBackgroundBrushBuEnabled(bool x)
+        {
+            return x ? Transparent : Red;
+        }
+
+        public static double GetOpacityByEnabled(bool x)
+        {
+            return x ? 1.0 : 0.75;
+        }
+    }
+
+    public class DeviceInfoBrushConverter: IValueConverter {
+        public static Brush Transparent = new SolidColorBrush { Opacity = 0.0 };
+        public static Brush Red = new SolidColorBrush(Colors.OrangeRed) { Opacity = 15.0 };
+
+        public object Convert(object value, Type targetType, object parameter, string language)
+        {
+            if (!(value is bool)) return null;
+            return ((bool)value) ? Transparent : Red;
+        }
+
+        public object ConvertBack(object value, Type targetType, object parameter, string language)
+        {
+            throw new NotImplementedException();
         }
     }
 

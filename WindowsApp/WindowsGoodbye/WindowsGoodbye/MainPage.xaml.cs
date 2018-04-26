@@ -1,18 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Runtime.InteropServices.WindowsRuntime;
+﻿using System.Linq;
 using Windows.ApplicationModel.Resources;
-using Windows.Foundation;
-using Windows.Foundation.Collections;
-using Windows.UI.Xaml;
 using Windows.UI.Xaml.Controls;
-using Windows.UI.Xaml.Controls.Primitives;
-using Windows.UI.Xaml.Data;
-using Windows.UI.Xaml.Input;
-using Windows.UI.Xaml.Media;
 using Windows.UI.Xaml.Navigation;
+using GalaSoft.MvvmLight.Messaging;
 
 // The Blank Page item template is documented at https://go.microsoft.com/fwlink/?LinkId=402352&clcid=0x409
 
@@ -23,19 +13,24 @@ namespace WindowsGoodbye
     /// </summary>
     public sealed partial class MainPage : Page
     {
-        private string TitleString = String.Empty;
-        private readonly ResourceLoader resourceLoader = Windows.ApplicationModel.Resources.ResourceLoader.GetForCurrentView();
+        private readonly ResourceLoader resourceLoader = ResourceLoader.GetForCurrentView();
         public MainPage()
         {
-            this.InitializeComponent();
+            InitializeComponent();
             foreach (NavigationViewItemBase item in NaviView.MenuItems)
             {
                 if (item is NavigationViewItem && item.Tag.ToString() == "home")
                 {
                     NaviView.SelectedItem = item;
+                    ContentFrame.Navigate(typeof(HomePage));
                     break;
                 }
             }
+            Messenger.Default.Register<OpenDeviceDetailsMessage>(this, true, msg =>
+            {
+                if (msg.DeviceInfo == null) ContentFrame.Navigate(typeof(HomePage));
+                else ContentFrame.Navigate(typeof(DeviceDetailsPage), msg.DeviceInfo);
+            });
         }
 
         private void ContentFrame_Navigated(object sender, NavigationEventArgs e)
@@ -45,29 +40,28 @@ namespace WindowsGoodbye
 
         private void NavView_OnItemInvoked(NavigationView sender, NavigationViewItemInvokedEventArgs args)
         {
+            if (args.IsSettingsInvoked)
+            {
+                // TODO Settings
+            }
             var item = sender.MenuItems.OfType<NavigationViewItem>().First(x => (string)x.Content == (string)args.InvokedItem);
-            if ((string) ((NavigationViewItem) NaviView.SelectedItem).Tag == "home" && (string)item.Tag == "home")
-                ContentFrame.Navigate(typeof(HomePage));
+            switch ((string)item.Tag)
+            {
+                case "home":
+                    ContentFrame.Navigate(typeof(HomePage));
+                    break;
+            }
         }
 
         private void NavView_SelectionChanged(NavigationView sender, NavigationViewSelectionChangedEventArgs args)
         {
-            if (args.IsSettingsSelected)
+            if (args.IsSettingsSelected) return;
+            //var item = sender.MenuItems.OfType<NavigationViewItem>().First(x => (string)x.Content == (string)args.SelectedItem);
+            switch ((string) ((NavigationViewItem) args.SelectedItem).Tag)
             {
-                //ContentFrame.Navigate(typeof(SettingsPage));
-            }
-            else
-            {
-                //var item = sender.MenuItems.OfType<NavigationViewItem>().First(x => (string)x.Content == (string)args.SelectedItem);
-                switch ((string)((NavigationViewItem)args.SelectedItem).Tag)
-                {
-                    case "home":
-                        ContentFrame.Navigate(typeof(DeviceDetailsPage));
-                        break;
-                    case "pair":
-                        ContentFrame.Navigate(typeof(PairingPage));
-                        break;
-                }
+                case "pair":
+                    ContentFrame.Navigate(typeof(PairingPage));
+                    break;
             }
         }
     }

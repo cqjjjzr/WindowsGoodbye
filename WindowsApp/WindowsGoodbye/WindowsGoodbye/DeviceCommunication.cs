@@ -1,22 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Linq.Expressions;
 using System.Net;
 using System.Net.Sockets;
-using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices.WindowsRuntime;
 using System.Text;
-using System.Threading;
 using System.Threading.Tasks;
-using Windows.ApplicationModel.Payments;
-using Windows.ApplicationModel.Resources;
 using Windows.Networking;
-using Windows.Networking.Connectivity;
 using Windows.Security.Cryptography;
-using Windows.UI.Core;
 using GalaSoft.MvvmLight.Messaging;
 
 namespace WindowsGoodbye
@@ -106,7 +98,7 @@ namespace WindowsGoodbye
                 DeviceKey = DeviceKey,
                 DeviceMacAddress = null,
                 DeviceModelName = modelName,
-                LastConnectedHost = LastConnectedHost
+                LastConnectedHost = LastConnectedHost.CanonicalName
             };
 
             // TODO: 调用我自己的代码开始交互操作系统
@@ -118,7 +110,7 @@ namespace WindowsGoodbye
             // TODO: 这里是否需要设备返回，以保证没有发生配对之后手机断开造成电脑注册了手机却没有登记电脑信息的情况？
             var payload = Convert.ToBase64String(CryptoTools.EncryptAES(Encoding.UTF8.GetBytes(computerInfo), PairEncryptKey));
             var bytes = Encoding.UTF8.GetBytes(PairingFinishPrefix + payload);
-            var stream = await UnicastListener.DatagramSocket.GetOutputStreamAsync(deviceInfo.LastConnectedHost,
+            var stream = await UnicastListener.DatagramSocket.GetOutputStreamAsync(new HostName(deviceInfo.LastConnectedHost),
                 UnicastListener.DeviceUnicastPort.ToString());
             Windows.Storage.Streams.Buffer buf = new Windows.Storage.Streams.Buffer((uint) bytes.Length);
             bytes.CopyTo(buf);

@@ -170,14 +170,15 @@
     </Page.Resources>
 
     <RelativePanel VerticalAlignment="Stretch" Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
-        <RelativePanel x:Name="TitlePanel" HorizontalAlignment="Left" VerticalAlignment="Top" Height="70" Margin="20,10,0,0">
+        <RelativePanel x:Name="TitlePanel" HorizontalAlignment="Left" VerticalAlignment="Center" Height="70" Margin="20,10,0,0">
             <RelativePanel x:Name="FriendNamePanel" Height="Auto" VerticalAlignment="Top" Width="Auto" RelativePanel.AlignVerticalCenterWithPanel="True">
-                <TextBlock x:Name="FriendlyNameText" HorizontalAlignment="Center" Text="{x:Bind Path=Info.DeviceFriendlyName}" TextWrapping="Wrap" VerticalAlignment="Center" FontWeight="Bold" FontSize="36" TextAlignment="Center" RelativePanel.AlignVerticalCenterWithPanel="True" AllowDrop="True" />
-                <TextBox Style="{StaticResource NoXButton}" x:Name="FriendlyNameEditor" Height="Auto" Text="TextBox" VerticalAlignment="Top" Visibility="Collapsed" RelativePanel.AlignLeftWith="FriendlyNameText" RelativePanel.AlignVerticalCenterWithPanel="True" FontSize="34" KeyUp="FriendlyNameEditor_KeyUp"/>
+                <TextBlock x:Name="FriendlyNameText" HorizontalAlignment="Center" Text="{x:Bind Path=Info.DeviceFriendlyName, Mode=OneWay}" TextWrapping="Wrap" VerticalAlignment="Center" FontWeight="Bold" FontSize="36" TextAlignment="Center" RelativePanel.AlignVerticalCenterWithPanel="True" AllowDrop="True" />
+                <TextBox Style="{StaticResource NoXButton}" x:Name="FriendlyNameEditor" Height="Auto" Text="TextBox" VerticalAlignment="Top" Visibility="Collapsed" RelativePanel.AlignLeftWith="FriendlyNameText" RelativePanel.AlignVerticalCenterWithPanel="True" FontSize="34" KeyUp="FriendlyNameEditor_KeyUp" MinWidth="110"/>
             </RelativePanel>
             <Button x:Name="EditFriendlyNameButton" Content="&#xE70F;" FontFamily="Segoe MDL2 Assets" Foreground="#95000000" Background="#00000000" Padding="0,0,0,0" RelativePanel.RightOf="FriendNamePanel" RelativePanel.AlignVerticalCenterWithPanel="True" Margin="5,0,0,0" FontSize="18" Click="EditFriendlyNameButton_Click" />
             <Button x:Name="DiscardEditingButton" Content="&#xEA39;" FontFamily="Segoe MDL2 Assets" Foreground="#95000000" Background="#00000000" Padding="0,0,0,0" RelativePanel.RightOf="EditFriendlyNameButton" RelativePanel.AlignVerticalCenterWithPanel="True" Margin="5,0,0,0" FontSize="18" Visibility="Collapsed" Click="DiscardEditingButton_Click" />
             <TextBlock x:Name="EditingErrorText" Height="20" Text="TextBlock" TextWrapping="Wrap" VerticalAlignment="Top" RelativePanel.RightOf="DiscardEditingButton" RelativePanel.AlignVerticalCenterWithPanel="False" RelativePanel.AlignBottomWithPanel="False" FocusVisualPrimaryBrush="Red" Foreground="#FFFF5353" RelativePanel.AlignBottomWith="FriendNamePanel" Visibility="Collapsed"/>
+            <ToggleSwitch x:Name="EnabledToggle" OffContent="" OnContent="" Header="" RelativePanel.RightOf="EditingErrorText" HorizontalContentAlignment="Center" MinWidth="155" HorizontalAlignment="Left" RelativePanel.AlignRightWithPanel="False" RelativePanel.AlignVerticalCenterWithPanel="True" Toggled="EnabledToggle_Toggled"/>
         </RelativePanel>
         <RelativePanel x:Name="DetailsHintPanel" HorizontalAlignment="Left" VerticalAlignment="Top" RelativePanel.Below="TitlePanel" RelativePanel.AlignLeftWith="TitlePanel" Margin="50,20,0,0">
             <TextBlock x:Uid="DeviceIdHint" x:Name="DeviceIdHint" Text="TextBlock" TextWrapping="Wrap"/>
@@ -189,5 +190,32 @@
             <TextBlock x:Name="DeviceModelNameText" Text="{x:Bind Info.DeviceModelName}" RelativePanel.Below="DeviceIdText"/>
             <TextBlock x:Name="DeviceMACText" Text="{x:Bind Info.DeviceMacAddress}" TextWrapping="Wrap" RelativePanel.Below="DeviceModelNameText"/>
         </RelativePanel>
+        <Button x:Uid="DeleteButton" x:Name="DeleteButton" Content="Delete" RelativePanel.Below="DetailsPanel" HorizontalContentAlignment="Center" Margin="20,20,20,20" RelativePanel.AlignLeftWithPanel="True" RelativePanel.AlignRightWithPanel="True" HorizontalAlignment="Stretch" Click="DeleteButton_OnClick"/>
+        <ListView x:Name="AuthRecordsGrid"  ItemsSource="{x:Bind Records, Mode=OneWay}" RelativePanel.Below="DeleteButton" Margin="50,0,50,44" HorizontalContentAlignment="Stretch" RelativePanel.AlignLeftWithPanel="True" RelativePanel.AlignRightWithPanel="True">
+            <ListView.HeaderTemplate>
+                <DataTemplate>
+                    <Grid Padding="12" Background="{ThemeResource SystemBaseLowColor}">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="75"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="#" Style="{ThemeResource CaptionTextBlockStyle}" TextAlignment="Right" HorizontalAlignment="Right" Padding="0,0,10,0" Margin="0,0,20,0"/>
+                        <TextBlock x:Uid="TimeHeader" Grid.Column="1" Text="Time" Style="{ThemeResource CaptionTextBlockStyle}" HorizontalAlignment="Left"/>
+                    </Grid>
+                </DataTemplate>
+            </ListView.HeaderTemplate>
+            <ListView.ItemTemplate>
+                <DataTemplate x:Name="TableDataTemplate" x:DataType="local:DeviceAuthRecord">
+                    <Grid Height="15" AutomationProperties.Name="{x:Bind Id}">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="75"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0" VerticalAlignment="Center" Style="{ThemeResource BaseTextBlockStyle}" Text="{x:Bind Id}" HorizontalAlignment="Right" Padding="0,0,10,0" />
+                        <TextBlock Grid.Column="1" VerticalAlignment="Center" Text="{x:Bind Time}" HorizontalAlignment="Left" Padding="0,0,1,0"/>
+                    </Grid>
+                </DataTemplate>
+            </ListView.ItemTemplate>
+        </ListView>
     </RelativePanel>
 </Page>

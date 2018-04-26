@@ -117,6 +117,9 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
+  <data name="DeleteButton.Content" xml:space="preserve">
+    <value>删除设备</value>
+  </data>
   <data name="DeviceIdHint.Text" xml:space="preserve">
     <value>设备唯一标识符：</value>
   </data>
@@ -125,9 +128,6 @@
   </data>
   <data name="DeviceModelNameHint.Text" xml:space="preserve">
     <value>设备型号：</value>
-  </data>
-  <data name="FriendlyNameCantBeEmpty" xml:space="preserve">
-    <value>设备名称不能为空！</value>
   </data>
   <data name="HomeNavItem.Content" xml:space="preserve">
     <value>主页</value>
@@ -141,8 +141,26 @@
   <data name="SuccessText.Text" xml:space="preserve">
     <value>配对成功！</value>
   </data>
+  <data name="TimeHeader.Text" xml:space="preserve">
+    <value>解锁时间</value>
+  </data>
   <data name="WaitingText.Text" xml:space="preserve">
     <value>发现新设备：{0}({1})</value>
+  </data>
+  <data name="_Cancel" xml:space="preserve">
+    <value>取消</value>
+  </data>
+  <data name="_Delete" xml:space="preserve">
+    <value>删除</value>
+  </data>
+  <data name="_DeleteConfirmText" xml:space="preserve">
+    <value>确定删除设备 {0}({1})？删除后将无法使用该设备解锁电脑。</value>
+  </data>
+  <data name="_DeleteConfirmTitle" xml:space="preserve">
+    <value>确定删除？</value>
+  </data>
+  <data name="_FriendlyNameCantBeEmpty" xml:space="preserve">
+    <value>设备名称不能为空！</value>
   </data>
   <data name="_Title.DeviceDetailsPage" xml:space="preserve">
     <value>设备详情</value>

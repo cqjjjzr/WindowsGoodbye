@@ -37,5 +37,6 @@
     <Capability Name="privateNetworkClientServer" />
     <Capability Name="internetClientServer" />
     <rescap:Capability Name="runFullTrust" />
+    <rescap:Capability Name="secondaryAuthenticationFactor" />
   </Capabilities>
 </Package>

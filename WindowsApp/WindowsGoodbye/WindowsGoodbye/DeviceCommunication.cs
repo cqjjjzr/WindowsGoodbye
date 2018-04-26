@@ -8,7 +8,11 @@ using System.Runtime.InteropServices.WindowsRuntime;
 using System.Text;
 using System.Threading.Tasks;
 using Windows.Networking;
+using Windows.Networking.Connectivity;
 using Windows.Security.Cryptography;
+using Windows.Security.ExchangeActiveSyncProvisioning;
+using Windows.System;
+using Windows.System.Profile;
 using GalaSoft.MvvmLight.Messaging;
 
 namespace WindowsGoodbye
@@ -62,7 +66,7 @@ namespace WindowsGoodbye
             UdpEventPublisher.PairingRequestReceived -= ProcessPairingRequest;
         }
 
-        public void ProcessPairingRequest(string pairPayload, IPAddress remoteIP)
+        public async void ProcessPairingRequest(string pairPayload, IPAddress remoteIP)
         {
             LastConnectedHost = new HostName(remoteIP.ToString());
             var rawBytes = Convert.FromBase64String(pairPayload);
@@ -101,7 +105,12 @@ namespace WindowsGoodbye
                 LastConnectedHost = LastConnectedHost.CanonicalName
             };
 
-            // TODO: 调用我自己的代码开始交互操作系统
+            await WindowsHelloInterop.RegisterDevice(info);
+
+            var hostNames = NetworkInformation.GetHostNames();
+            var localName = hostNames.FirstOrDefault(name => name.DisplayName.Contains(".local"));
+            var computerName = localName?.DisplayName?.Replace(".local", "") ?? "no info";
+            FinishPairing(info, computerName);
         }
 
         public async void FinishPairing(DeviceInfo deviceInfo, string computerInfo)

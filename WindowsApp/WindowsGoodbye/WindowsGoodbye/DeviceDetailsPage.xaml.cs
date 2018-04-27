@@ -131,7 +131,7 @@ namespace WindowsGoodbye
 
             App.DbContext.Devices.Remove(Info);
             App.DbContext.SaveChanges();
-            // TODO unregister in os
+            await WindowsHelloInterop.UnregisterDevice(Info);
 
             Messenger.Default.Send(new OpenDeviceDetailsMessage());
         }

@@ -12,7 +12,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.InetAddress;
-import java.net.MulticastSocket;
 import java.net.UnknownHostException;
 import java.util.UUID;
 
@@ -73,9 +72,7 @@ public class PairingTools {
         String payload = PAIRING_REQUEST_PREFIX + Base64.encodeToString(payloadBytes, Base64.DEFAULT);
 
         byte[] data = payload.getBytes();
-        MulticastSocket multicastSocket = new MulticastSocket(PAIRING_MULTICAST_PORT);
-        multicastSocket.joinGroup(PAIRING_MULTICAST_ADDR);
-        multicastSocket.send(new DatagramPacket(data, data.length));
+        MulticastListeningService.multicastSocket.send(new DatagramPacket(data, data.length));
 
         // TODO: Add pc to persist
     }

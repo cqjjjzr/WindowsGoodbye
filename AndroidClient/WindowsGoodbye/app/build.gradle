@@ -19,7 +19,9 @@ android {
 }
 
 dependencies {
-    compile 'com.jaredrummler:android-device-names:1.1.7'
+    implementation 'com.jaredrummler:android-device-names:1.1.7'
+    implementation 'com.mtramin:rxfingerprint:2.2.1'
+    implementation 'com.github.blikoon:QRCodeScanner:0.1.2'
 
     implementation fileTree(dir: 'libs', include: ['*.jar'])
     implementation 'com.android.support:appcompat-v7:27.1.1'

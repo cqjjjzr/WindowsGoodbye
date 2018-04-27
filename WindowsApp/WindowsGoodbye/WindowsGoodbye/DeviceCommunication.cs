@@ -17,7 +17,6 @@ namespace WindowsGoodbye
 {
     public class DevicePairingContext
     {
-        public const int DeviceUnicastPort = 26818;
         public readonly IPAddress DevicePairingMulticastGroupAddress = IPAddress.Parse("225.67.76.67");
         public const string PairingPrefix = "wingb://pair?";
         public const string PairingFinishPrefix = "wingb://pair_finish?";

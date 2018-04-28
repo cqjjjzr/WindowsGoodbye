@@ -67,33 +67,39 @@ namespace WindowsGoodbye
             Messenger.Default.Register<PairDeviceDetectedMessage>(this, true, async msg =>
             {
                 await Dispatcher.RunAsync(CoreDispatcherPriority.Normal, () =>
-                 {
-                     var resourceLoader = Windows.ApplicationModel.Resources.ResourceLoader.GetForCurrentView();
-                     WaitingText.Text = string.Format(resourceLoader.GetString("WaitingText/Text"),
-                         msg.DeviceFriendlyName, msg.DeviceModelName);
-                     QRCodePanel.Visibility = Visibility.Collapsed;
-                     ProgressRing.IsActive = true;
-                     WaitingPanel.Visibility = Visibility.Visible;
-                     Messenger.Default.Unregister<PairDeviceDetectedMessage>(this);
-                 });
+                {
+                    var resourceLoader = Windows.ApplicationModel.Resources.ResourceLoader.GetForCurrentView();
+                    WaitingText.Text = string.Format(resourceLoader.GetString("WaitingText/Text"),
+                        msg.DeviceFriendlyName, msg.DeviceModelName);
+                    QRCodePanel.Visibility = Visibility.Collapsed;
+                    ProgressRing.IsActive = true;
+                    WaitingPanel.Visibility = Visibility.Visible;
+                    Messenger.Default.Unregister<PairDeviceDetectedMessage>(this);
+                });
             });
-            Messenger.Default.Register<PairingFailedMessage>(this, true, msg =>
+            Messenger.Default.Register<PairingFailedMessage>(this, true, async msg =>
             {
-                FailedText.Text = msg.Reason;
-                QRCodePanel.Visibility = Visibility.Collapsed;
-                ProgressRing.IsActive = false;
-                WaitingPanel.Visibility = Visibility.Collapsed;
-                FailPanel.Visibility = Visibility.Visible;
-                Messenger.Default.Unregister(this);
+                await Dispatcher.RunAsync(CoreDispatcherPriority.Normal, () =>
+                {
+                    FailedText.Text = msg.Reason;
+                    QRCodePanel.Visibility = Visibility.Collapsed;
+                    ProgressRing.IsActive = false;
+                    WaitingPanel.Visibility = Visibility.Collapsed;
+                    FailPanel.Visibility = Visibility.Visible;
+                    Messenger.Default.Unregister(this);
+                });
             });
 
-            Messenger.Default.Register<PairingFinishedMessage>(this, true, msg =>
+            Messenger.Default.Register<PairingFinishedMessage>(this, true, async msg =>
             {
-                QRCodePanel.Visibility = Visibility.Collapsed;
-                ProgressRing.IsActive = false;
-                WaitingPanel.Visibility = Visibility.Collapsed;
-                SuccessPanel.Visibility = Visibility.Visible;
-                Messenger.Default.Unregister(this);
+                await Dispatcher.RunAsync(CoreDispatcherPriority.Normal, () =>
+                {
+                    QRCodePanel.Visibility = Visibility.Collapsed;
+                    ProgressRing.IsActive = false;
+                    WaitingPanel.Visibility = Visibility.Collapsed;
+                    SuccessPanel.Visibility = Visibility.Visible;
+                    Messenger.Default.Unregister(this);
+                });
             });
 
             context.StartListening();

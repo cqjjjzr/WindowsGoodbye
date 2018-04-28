@@ -1,26 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.Diagnostics;
-using System.IO;
 using System.Linq;
-using System.Runtime.InteropServices.WindowsRuntime;
 using Windows.ApplicationModel.Resources;
-using Windows.Devices.Enumeration;
-using Windows.Foundation;
-using Windows.Foundation.Collections;
 using Windows.System;
-using Windows.UI.Popups;
 using Windows.UI.Xaml;
 using Windows.UI.Xaml.Controls;
-using Windows.UI.Xaml.Controls.Primitives;
-using Windows.UI.Xaml.Data;
 using Windows.UI.Xaml.Input;
-using Windows.UI.Xaml.Media;
 using Windows.UI.Xaml.Navigation;
 using GalaSoft.MvvmLight.Messaging;
-
-// https://go.microsoft.com/fwlink/?LinkId=234238 上介绍了“空白页”项模板
 
 namespace WindowsGoodbye
 {
@@ -50,13 +38,13 @@ namespace WindowsGoodbye
             Info = (DeviceInfo) e.Parameter;
             Debug.Assert(Info != null, nameof(Info) + " != null");
             Records = App.DbContext.AuthRecords.Where(record => record.DeviceId == Info.DeviceId).ToList();
-            for (int i = 0;i < 50;i++)
+            /*for (int i = 0;i < 50;i++)
             Records.Add(new DeviceAuthRecord
             {
                 DeviceId = Info.DeviceId,
                 Id = 10,
                 Time = DateTime.Now
-            });
+            });*/
             EnabledToggle.IsOn = Info.Enabled;
         }
 

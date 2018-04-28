@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices.WindowsRuntime;
+using System.Threading;
 using Windows.ApplicationModel;
 using Windows.ApplicationModel.Activation;
 using Windows.ApplicationModel.AppService;
@@ -10,6 +11,7 @@ using Windows.ApplicationModel.Background;
 using Windows.Foundation;
 using Windows.Foundation.Collections;
 using Windows.Networking.Sockets;
+using Windows.Security.Authentication.Identity.Provider;
 using Windows.Storage.Streams;
 using Windows.UI.Xaml;
 using Windows.UI.Xaml.Controls;
@@ -30,6 +32,8 @@ namespace WindowsGoodbye
     {
         public static DatabaseContext DbContext = new DatabaseContext();
 
+        public static App Instance => (App) Current;
+
         /// <summary>
         /// Initializes the singleton application object.  This is the first line of authored code
         /// executed, and as such is the logical equivalent of main() or WinMain().
@@ -41,13 +45,13 @@ namespace WindowsGoodbye
             using (var db = new DatabaseContext())
             {
                 db.Database.Migrate();
-                db.Devices.Add(new DeviceInfo
+                /*db.Devices.Add(new DeviceInfo
                 {
                     DeviceId = Guid.NewGuid(),
                     DeviceFriendlyName = "SOZijn",
                     DeviceModelName = "dslfjko"
                 });
-                db.SaveChanges();
+                db.SaveChanges();*/
             }
         }
 
@@ -116,23 +120,9 @@ namespace WindowsGoodbye
         {
             var deferral = e.SuspendingOperation.GetDeferral();
             //TODO: Save application state and stop any background activity
-            MulticastListener.StopListening();
-            UnicastListener.StopListening();
+            //MulticastListener.StopListening();
+            //UnicastListener.StopListening();
             deferral.Complete();
-        }
-
-        public static AppServiceConnection IPHelperConnection = null;
-
-        protected override void OnBackgroundActivated(BackgroundActivatedEventArgs args)
-        {
-            base.OnBackgroundActivated(args);
-            if (args.TaskInstance.TriggerDetails is AppServiceTriggerDetails)
-            {
-                BackgroundTaskDeferral appServiceDeferral = args.TaskInstance.GetDeferral();
-                AppServiceTriggerDetails details = args.TaskInstance.TriggerDetails as AppServiceTriggerDetails;
-                IPHelperConnection = details.AppServiceConnection;
-                IPHelperUtils.ConnectionOpenEvent.Set();
-            }
         }
     }
 }

@@ -64,13 +64,13 @@ namespace WindowsGoodbye
             UdpEventPublisher.PairingRequestReceived -= ProcessPairingRequest;
         }
 
-        public async void ProcessPairingRequest(string pairPayload, IPAddress remoteIP)
+        public void ProcessPairingRequest(string pairPayload, IPAddress remoteIP)
         {
             LastConnectedHost = new HostName(remoteIP.ToString());
             var rawBytes = Convert.FromBase64String(pairPayload);
             if (rawBytes.Length <= Utils.GuidLength) return;
             var deviceIdBytes = new byte[Utils.GuidLength];
-            rawBytes.CopyTo(deviceIdBytes, Utils.GuidLength);
+            Array.Copy(rawBytes, deviceIdBytes, Utils.GuidLength);
             var deviceId = new Guid(deviceIdBytes);
             if (deviceId != DeviceId) return;
 
@@ -78,17 +78,16 @@ namespace WindowsGoodbye
             var encryptedLen = rawBytes.Length - Utils.GuidLength;
             var encryptedData = new byte[encryptedLen];
 
-            rawBytes.CopyTo(encryptedData, encryptedLen);
+            Array.Copy(rawBytes, Utils.GuidLength, encryptedData, 0, encryptedLen);
             var decryptedData = CryptoTools.DecryptAES(encryptedData, PairEncryptKey);
-            
 
             if (decryptedData.Length < 2)
             {
                 FailPairing("Pairing.Exception.BadResponse");
                 return;
             }
-            int friendlyNameLen = encryptedData[0];
-            int modelNameLen = encryptedData[1];
+            int friendlyNameLen = decryptedData[0];
+            int modelNameLen = decryptedData[1];
             if (decryptedData.Length != 2 + friendlyNameLen + modelNameLen)
             {
                 FailPairing("Pairing.Exception.BadResponse");
@@ -111,9 +110,8 @@ namespace WindowsGoodbye
 
             try
             {
-                await WindowsHelloInterop.RegisterDevice(info, DeviceKey, AuthKey);
+                //await WindowsHelloInterop.RegisterDevice(info, DeviceKey, AuthKey);
                 FinishPairing(info, Utils.GetComputerInfo());
-                Messenger.Default.Send(new PairingFinishedMessage());
             }
             catch (OperationCanceledException ex)
             {
@@ -145,13 +143,17 @@ namespace WindowsGoodbye
             bytes.CopyTo(buf);
             await stream.WriteAsync(buf);
             stream.Dispose();
-            
-            var macs = new HashSet<string>();
-            IPHelperUtils.GetMACFromIP(deviceInfo.LastConnectedHost, macs);
-            deviceInfo.DeviceMacAddress = macs.FirstOrDefault();
 
             DisposeKeys();
             _isFinished = true;
+            
+            IPHelperUtils.GetMACFromIP(deviceInfo.LastConnectedHost, result =>
+                {
+                    deviceInfo.DeviceMacAddress = result.FirstOrDefault();
+                    App.DbContext.Add(deviceInfo);
+                    App.DbContext.SaveChanges();
+                    Messenger.Default.Send(new PairingFinishedMessage());
+                });
         }
 
         private async void FailPairing(string messageI18n, string append = "")

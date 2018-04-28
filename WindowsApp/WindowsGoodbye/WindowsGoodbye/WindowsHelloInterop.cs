@@ -42,5 +42,14 @@ namespace WindowsGoodbye
                 Debug.Write(e);
             }
         }
+
+        public static async void UnregisterAll()
+        {
+            var infos = await SecondaryAuthenticationFactorRegistration.FindAllRegisteredDeviceInfoAsync(SecondaryAuthenticationFactorDeviceFindScope.User);
+            foreach (var info in infos)
+            {
+                await SecondaryAuthenticationFactorRegistration.UnregisterDeviceAsync(info.DeviceId);
+            }
+        }
     }
 }

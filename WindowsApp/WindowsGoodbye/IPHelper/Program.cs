@@ -31,18 +31,27 @@ namespace IPHelper
                 Console.WriteLine("usage: arphelper -i <ipaddress> or arphelper -m <macaddress>");
                 return;
             }*/
+#if DEBUG
+            Console.WriteLine(string.Join(", ", args));
+#endif
 
-            OpenConnection();
+            var t = OpenConnection();
+            t.Wait();
+            processingIPAddr = t.Result;
 
+            //Console.ReadKey();
             mode = args[2];
+#if DEBUG
+            Console.WriteLine("Mode: " + args[2]);
+#endif
             switch (mode)
             {
                 case "-i":
-                    new Ping().Send(args[0]);
-                    SendResult(ArpUtils.GetMacFromIp(args[1]));
+                    new Ping().Send(processingIPAddr);
+                    SendResult(ArpUtils.GetMacFromIp(processingIPAddr));
                     break;
                 case "-m":
-                    var fromArp = ArpUtils.GetIpFromMac(args[1]);
+                    var fromArp = ArpUtils.GetIpFromMac(processingIPAddr);
                     if (fromArp != null)
                         SendResult(fromArp);
 
@@ -74,7 +83,7 @@ namespace IPHelper
                                     }
                                 }
 
-                                var rst = NmapUtils.Scan($"{ipInfo.Address}/{totalBits}", args[1]);
+                                var rst = NmapUtils.Scan($"{ipInfo.Address}/{totalBits}", processingIPAddr);
                                 if (rst != null)
                                 {
                                     SendResult(rst);
@@ -87,57 +96,73 @@ namespace IPHelper
                     break;
             }
 
-            SyncIAsyncOperation(appServiceConnection.SendMessageAsync(new ValueSet
-            {
-                ["op"] = "exit",
-                ["status"] = "ok"
-            }));
+            Exit();
         }
 
-        private static void OpenConnection()
+        private static async Task<string> OpenConnection()
         {
-            var connectResult = SyncIAsyncOperation(appServiceConnection.OpenAsync());
+#if DEBUG
+            Console.WriteLine("Connect to the app..." + appServiceConnection.PackageFamilyName + " " + appServiceConnection.AppServiceName);
+#endif
+            var connectResult = await appServiceConnection.OpenAsync();
             if (connectResult != AppServiceConnectionStatus.Success)
                 Environment.Exit(-1);
 
+#if DEBUG
+            Console.WriteLine("Established.");
+#endif
             appServiceConnection.RequestReceived += AppServiceConnection_RequestReceived;
-            var addressResult = SyncIAsyncOperation(appServiceConnection.SendMessageAsync(new ValueSet { ["op"] = "addr" }));
+            var addressResult = await appServiceConnection.SendMessageAsync(new ValueSet { ["op"] = "addr" });
+#if DEBUG
+            Console.WriteLine("Address result: " + addressResult.Status);
+            //Console.ReadKey();
+#endif
             if (addressResult.Status != AppServiceResponseStatus.Success)
+            {
+#if DEBUG
+                Console.WriteLine("Error getting address! " + addressResult.Status);
+                //Console.ReadKey();
+#endif
                 Environment.Exit(-1);
-
+            }
             processingIPAddr = (string)addressResult.Message["addr"];
+#if DEBUG
+            Console.WriteLine("Got address! " + processingIPAddr);
+            //Console.ReadKey();
+#endif
+            return processingIPAddr;
         }
 
         private static void AppServiceConnection_RequestReceived(AppServiceConnection sender, AppServiceRequestReceivedEventArgs args)
         {
-            var req = args.Request;
             var msg = args.Request.Message;
             switch ((string) msg["op"])
             {
                 case "exit":
-                    SyncIAsyncOperation(req.SendResponseAsync(new ValueSet { ["op"] = "exit", ["status"] = "ok" }));
+                    Exit();
                     Environment.Exit(0);
                     break;
             }
         }
 
-        private static void SendResult(string addr)
+        private static async void SendResult(string addr)
         {
-            SyncIAsyncOperation(appServiceConnection.SendMessageAsync(new ValueSet
+            await appServiceConnection.SendMessageAsync(new ValueSet
             {
                 ["op"] = "result",
                 ["mode"] = mode,
                 ["orig"] = processingIPAddr,
                 ["addr"] = addr
-            }));
+            });
         }
 
-        private static T SyncIAsyncOperation<T>(IAsyncOperation<T> oper)
+        private static async void Exit()
         {
-            var task = oper.AsTask();
-            if (task.Status == TaskStatus.Created) task.Start();
-            task.Wait();
-            return task.Result;
+            await appServiceConnection.SendMessageAsync(new ValueSet
+            {
+                ["op"] = "exit",
+                ["status"] = "ok"
+            });
         }
     }
 }

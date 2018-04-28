@@ -9,7 +9,7 @@
 
     <Grid Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
         <RelativePanel x:Name="QRCodePanel" HorizontalAlignment="Center" VerticalAlignment="Center" Visibility="Collapsed">
-            <Image x:Name="QRCode" HorizontalAlignment="Center" Height="250" VerticalAlignment="Center" Width="250" RelativePanel.AlignHorizontalCenterWithPanel="True"/>
+            <Image x:Name="QRCode" HorizontalAlignment="Center" Height="500" VerticalAlignment="Center" Width="500" RelativePanel.AlignHorizontalCenterWithPanel="True"/>
             <TextBlock x:Uid="PairingHint" HorizontalAlignment="Center" Text="Open your Windows Goodbye App on your device and scan the QR code." TextWrapping="Wrap" VerticalAlignment="Top" RelativePanel.Below="QRCode" Margin="0,16,0,0" RelativePanel.AlignHorizontalCenterWithPanel="True" FontSize="18"/>
 
         </RelativePanel>

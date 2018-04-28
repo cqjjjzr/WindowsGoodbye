@@ -7,7 +7,9 @@ import android.content.Context;
 import android.content.Intent;
 import android.os.IBinder;
 import android.support.v4.app.NotificationCompat;
+import android.util.Log;
 
+import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.InetAddress;
 import java.net.MulticastSocket;
@@ -20,9 +22,9 @@ public class MulticastListeningService extends Service {
     public static final int BUFFER_SIZE = 2048;
     public static final int PORT = 26817;
     public static InetAddress MULTICAST_GROUP;
-    public static MulticastSocket multicastSocket;
+    public MulticastSocket multicastSocket;
 
-    public MulticastListeningService() {
+    static {
         try {
             MULTICAST_GROUP = InetAddress.getByName("225.67.76.67");
         } catch (UnknownHostException e) { /* IGNORED */ } // THIS SHOULD NEVER HAPPENS
@@ -76,19 +78,31 @@ public class MulticastListeningService extends Service {
         @Override
         public void run() {
             try {
-                multicastSocket = new MulticastSocket(PORT);
-                multicastSocket.joinGroup(MULTICAST_GROUP);
-                multicastSocket.setLoopbackMode(true);
+                multicastSocket = allocNewSocket();
+                Log.i("multicast", "Multi!!! Started");
                 byte[] buf = new byte[BUFFER_SIZE];
                 DatagramPacket packet = new DatagramPacket(buf, 0, BUFFER_SIZE);
                 while (true) {
-                    if (workingThread.isInterrupted()) break;
-                    multicastSocket.receive(packet);
+                    try {
+                        if (workingThread.isInterrupted()) break;
+                        multicastSocket.receive(packet);
+                    } catch (Exception ex) {
+                        Log.w("ERR", "Multi!!!", ex);
+                    }
+
                     // TODO resolve packet!
                 }
             } catch (Exception ex) {
+                Log.e("ERR", "Failed to start Multi!!!", ex);
                 stopSelf();
             }
         }
+    }
+
+    public static MulticastSocket allocNewSocket() throws IOException {
+        MulticastSocket socket = new MulticastSocket(PORT);
+        socket.joinGroup(MULTICAST_GROUP);
+        socket.setLoopbackMode(true);
+        return socket;
     }
 }

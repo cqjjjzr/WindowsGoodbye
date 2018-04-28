@@ -126,6 +126,13 @@
     <None Include="WindowsGoodbye_TemporaryKey.pfx" />
   </ItemGroup>
   <ItemGroup>
+    <Content Include="Assets\iphelper.exe" />
+    <Content Include="Assets\libeay32.dll" />
+    <Content Include="Assets\libssh2.dll" />
+    <Content Include="Assets\ncat.exe" />
+    <Content Include="Assets\nmap.exe" />
+    <Content Include="Assets\nping.exe" />
+    <Content Include="Assets\ssleay32.dll" />
     <Content Include="Properties\Default.rd.xml" />
     <Content Include="Assets\LockScreenLogo.scale-200.png" />
     <Content Include="Assets\SplashScreen.scale-200.png" />

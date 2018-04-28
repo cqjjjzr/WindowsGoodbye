@@ -32,7 +32,17 @@ namespace WindowsGoodbye
         }
 
         public string DeviceModelName { get; set; }
-        public string DeviceMacAddress { get; set; }
+
+        private string _deviceMacAddress;
+        public string DeviceMacAddress
+        {
+            get => _deviceMacAddress;
+            set
+            {
+                _deviceMacAddress = value;
+                OnPropertyChanged(nameof(DeviceMacAddress));
+            }
+        }
         public string LastConnectedHost { get; set; }
         public event PropertyChangedEventHandler PropertyChanged;
         

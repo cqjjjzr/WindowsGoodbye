@@ -50,7 +50,7 @@ namespace WindowsGoodbye
             var info = Encoding.UTF8.GetString(buffer.ToArray());
             if (!info.StartsWith(PairingRequestPrefix) || info.Length <= PairingRequestPrefix.Length)
                 return;
-            var payload = info.Substring(PairingRequestPrefix.Length + 1);
+            var payload = info.Substring(PairingRequestPrefix.Length);
             UdpEventPublisher.FirePairingRequestReceived(payload, IPAddress.Parse(remoteAddress.CanonicalName));
         }
     }

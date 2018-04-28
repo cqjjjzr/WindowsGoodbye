@@ -63,7 +63,7 @@ namespace WindowsGoodbye
 
         public static byte[] GenerateAESKey()
         {
-            var buf = CryptographicBuffer.GenerateRandom(AESKeyLengthInBits);
+            var buf = CryptographicBuffer.GenerateRandom(AESKeyLengthInBits / 8);
             CryptographicBuffer.CopyToByteArray(buf, out var ret);
             return ret;
         }
@@ -72,15 +72,7 @@ namespace WindowsGoodbye
         {
             using (var aes = CreateContext(key))
             {
-                using (var memoryStream = new MemoryStream(data))
-                {
-                    using (var cryptoStream = new CryptoStream(memoryStream, aes.CreateDecryptor(), CryptoStreamMode.Read))
-                    {
-                        var ret = new byte[cryptoStream.Length];
-                        cryptoStream.Read(ret, 0, (int) cryptoStream.Length);
-                        return ret;
-                    }
-                }
+                return PerformCryptography(aes.CreateDecryptor(), data);
             }
         }
 
@@ -88,14 +80,19 @@ namespace WindowsGoodbye
         {
             using (var aes = CreateContext(key))
             {
-                using (var memoryStream = new MemoryStream(data))
+                return PerformCryptography(aes.CreateEncryptor(), data);
+            }
+        }
+
+        private static byte[] PerformCryptography(ICryptoTransform cryptoTransform, byte[] data)
+        {
+            using (var memoryStream = new MemoryStream())
+            {
+                using (var cryptoStream = new CryptoStream(memoryStream, cryptoTransform, CryptoStreamMode.Write))
                 {
-                    using (var cryptoStream = new CryptoStream(memoryStream, aes.CreateEncryptor(), CryptoStreamMode.Read))
-                    {
-                        var ret = new byte[cryptoStream.Length];
-                        cryptoStream.Read(ret, 0, (int)cryptoStream.Length);
-                        return ret;
-                    }
+                    cryptoStream.Write(data, 0, data.Length);
+                    cryptoStream.FlushFinalBlock();
+                    return memoryStream.ToArray();
                 }
             }
         }

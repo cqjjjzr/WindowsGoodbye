@@ -6,4 +6,6 @@
     <string name="nav_header_subtitle">android.studio@android.com</string>
     <string name="nav_header_desc">Navigation header</string>
     <string name="action_settings">Settings</string>
+    <string name="qr_prompt">Open Windows Goodbye App on your Windows 10 PC and scan the QR code in the \"Pair\" page.</string>
+    <string name="toast_pair_failed">Pairing failed! %1$s: %2$s</string>
 </resources>

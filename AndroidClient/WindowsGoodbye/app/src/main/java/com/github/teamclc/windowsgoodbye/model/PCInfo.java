@@ -1,4 +1,4 @@
-package com.github.teamclc.windowsgoodbye;
+package com.github.teamclc.windowsgoodbye.model;
 
 import java.util.UUID;
 

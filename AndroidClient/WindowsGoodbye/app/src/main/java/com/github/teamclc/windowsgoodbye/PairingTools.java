@@ -5,6 +5,7 @@ import android.content.Context;
 import android.util.Base64;
 import android.util.Log;
 
+import com.github.teamclc.windowsgoodbye.model.PCInfo;
 import com.github.teamclc.windowsgoodbye.utils.CryptoUtils;
 import com.github.teamclc.windowsgoodbye.utils.UUIDUtils;
 import com.jaredrummler.android.device.DeviceName;

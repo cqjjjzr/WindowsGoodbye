@@ -1,16 +1,9 @@
 package com.github.teamclc.windowsgoodbye;
 
-import android.Manifest;
 import android.annotation.SuppressLint;
-import android.app.Activity;
-import android.app.AlertDialog;
-import android.content.DialogInterface;
 import android.content.Intent;
-import android.content.pm.PackageManager;
 import android.os.AsyncTask;
-import android.os.Build;
 import android.os.Bundle;
-import android.support.annotation.NonNull;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.NavigationView;
 import android.support.design.widget.Snackbar;
@@ -25,15 +18,13 @@ import android.view.MenuItem;
 import android.view.View;
 import android.widget.Toast;
 
-import com.blikoon.qrcodescanner.QrCodeActivity;
+import com.google.zxing.integration.android.IntentIntegrator;
+import com.google.zxing.integration.android.IntentResult;
 
 import java.io.IOException;
 
 public class MainActivity extends AppCompatActivity
         implements NavigationView.OnNavigationItemSelectedListener {
-    private static final int REQUEST_CODE_QR_SCAN = 10151;
-    private static final int REQUEST_CODE_CAMERA = 10152;
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -41,88 +32,41 @@ public class MainActivity extends AppCompatActivity
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
-        FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
+        FloatingActionButton fab = findViewById(R.id.fab);
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
+                IntentIntegrator intentIntegrator = new IntentIntegrator(MainActivity.this);
+                intentIntegrator.setPrompt(getString(R.string.qr_prompt));
+                intentIntegrator.initiateScan();
                 Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
                         .setAction("Action", null).show();
             }
         });
 
-        DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
+        DrawerLayout drawer = findViewById(R.id.drawer_layout);
         ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(
                 this, drawer, toolbar, R.string.navigation_drawer_open, R.string.navigation_drawer_close);
         drawer.addDrawerListener(toggle);
         toggle.syncState();
 
-        NavigationView navigationView = (NavigationView) findViewById(R.id.nav_view);
+        NavigationView navigationView = findViewById(R.id.nav_view);
         navigationView.setNavigationItemSelectedListener(this);
 
         MulticastListeningService.startup(this);
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            if (checkSelfPermission(Manifest.permission.CAMERA)
-                    != PackageManager.PERMISSION_GRANTED) {
-                requestPermissions(new String[]{Manifest.permission.CAMERA},
-                        REQUEST_CODE_CAMERA);
-            } else {
-                startActivityForResult(new Intent(MainActivity.this,QrCodeActivity.class), REQUEST_CODE_QR_SCAN);
-            }
-        } else {
-            startActivityForResult(new Intent(MainActivity.this,QrCodeActivity.class), REQUEST_CODE_QR_SCAN);
-        }
-        //startActivityForResult(new Intent(MainActivity.this,QrCodeActivity.class), REQUEST_CODE_QR_SCAN);
-    }
-
-    @Override
-    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        if (requestCode == REQUEST_CODE_CAMERA) {
-            if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-//             Now user should be able to use camera
-                startActivityForResult(new Intent(MainActivity.this,QrCodeActivity.class), REQUEST_CODE_QR_SCAN);
-            } else {
-                // Your app will not have this permission. Turn off all functions
-                // that require this permission or it will force close like your
-                // original question
-            }
-        }
     }
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        if(requestCode == REQUEST_CODE_QR_SCAN)
-        {
-            if(resultCode != Activity.RESULT_OK)
-            {
-                Log.d("SDFGJOIJNFG","COULD NOT GET A GOOD RESULT.");
-                if(data==null)
-                    return;
-                //Getting the passed result
-                String result = data.getStringExtra("com.blikoon.qrcodescanner.error_decoding_image");
-                if( result!=null)
-                {
-                    AlertDialog alertDialog = new AlertDialog.Builder(MainActivity.this).create();
-                    alertDialog.setTitle("Scan Error");
-                    alertDialog.setMessage("QR Code could not be scanned");
-                    alertDialog.setButton(AlertDialog.BUTTON_NEUTRAL, "OK",
-                            new DialogInterface.OnClickListener() {
-                                public void onClick(DialogInterface dialog, int which) {
-                                    dialog.dismiss();
-                                }
-                            });
-                    alertDialog.show();
-                }
-                return;
-
+        IntentResult result = IntentIntegrator.parseActivityResult(requestCode, resultCode, data);
+        if(result != null) {
+            if (result.getContents() != null) {
+                String sresult = result.getContents();
+                Log.d("QRCode","Have scan result in your app activity :"+ sresult);
+                new PairTask().execute(sresult);
             }
-            if(data==null)
-                return;
-            //Getting the passed result
-            String result = data.getStringExtra("com.blikoon.qrcodescanner.got_qr_scan_relult");
-            Log.d("SRDGOIND","Have scan result in your app activity :"+ result);
-            new PairTask().execute(result);
+        } else {
+            super.onActivityResult(requestCode, resultCode, data);
         }
     }
 
@@ -131,10 +75,10 @@ public class MainActivity extends AppCompatActivity
         @Override
         protected Void doInBackground(String... strings) {
             try {
-                Log.d("FFF", "start");
+                Log.d("PairTask", "start");
                 PairingTools.processPairData(strings[0], MainActivity.this);
             } catch (IOException e) {
-                Toast.makeText(MainActivity.this, "Fuck you", Toast.LENGTH_LONG).show();
+                Toast.makeText(MainActivity.this, getString(R.string.toast_pair_failed, e.getClass().getSimpleName(), e.getLocalizedMessage()), Toast.LENGTH_LONG).show();
             }
             return null;
         }
@@ -142,7 +86,7 @@ public class MainActivity extends AppCompatActivity
 
     @Override
     public void onBackPressed() {
-        DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
+        DrawerLayout drawer = findViewById(R.id.drawer_layout);
         if (drawer.isDrawerOpen(GravityCompat.START)) {
             drawer.closeDrawer(GravityCompat.START);
         } else {

@@ -7,6 +7,11 @@ public class AuthRecord {
     private UUID deviceID;
     private Date time;
 
+    public AuthRecord(UUID deviceID, Date time) {
+        this.deviceID = deviceID;
+        this.time = time;
+    }
+
     public UUID getDeviceID() {
         return deviceID;
     }

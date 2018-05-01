@@ -1,5 +1,6 @@
 package com.github.teamclc.windowsgoodbye.model;
 
+import java.util.Date;
 import java.util.UUID;
 
 public class PCInfo {
@@ -9,11 +10,27 @@ public class PCInfo {
     private byte[] deviceKey;
     private byte[] authKey;
     private String computerInfo;
+    private boolean enabled = true;
+
+    private Date lastUsedTime;
+
+    public PCInfo(UUID deviceID, String computerInfo) {
+        this.deviceID = deviceID;
+        this.computerInfo = computerInfo;
+    }
 
     public PCInfo(UUID deviceID, byte[] deviceKey, byte[] authKey) {
         this.deviceID = deviceID;
         this.deviceKey = deviceKey;
         this.authKey = authKey;
+    }
+
+    public PCInfo(UUID deviceID, String computerInfo, byte[] deviceKey, byte[] authKey, boolean enabled) {
+        this.deviceID = deviceID;
+        this.deviceKey = deviceKey;
+        this.authKey = authKey;
+        this.computerInfo = computerInfo;
+        this.enabled = enabled;
     }
 
     public UUID getDeviceID() {
@@ -46,5 +63,21 @@ public class PCInfo {
 
     public void setComputerInfo(String computerInfo) {
         this.computerInfo = computerInfo;
+    }
+
+    public Date getLastUsedTime() {
+        return lastUsedTime;
+    }
+
+    public void setLastUsedTime(Date lastUsedTime) {
+        this.lastUsedTime = lastUsedTime;
+    }
+
+    public boolean isEnabled() {
+        return enabled;
+    }
+
+    public void setEnabled(boolean enabled) {
+        this.enabled = enabled;
     }
 }

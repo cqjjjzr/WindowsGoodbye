@@ -11,6 +11,9 @@ import android.support.v4.view.GravityCompat;
 import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBarDrawerToggle;
 import android.support.v7.app.AppCompatActivity;
+import android.support.v7.widget.DefaultItemAnimator;
+import android.support.v7.widget.LinearLayoutManager;
+import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
 import android.util.Log;
 import android.view.Menu;
@@ -18,10 +21,15 @@ import android.view.MenuItem;
 import android.view.View;
 import android.widget.Toast;
 
+import com.github.teamclc.windowsgoodbye.db.DbHelper;
+import com.github.teamclc.windowsgoodbye.model.PCInfo;
+import com.github.teamclc.windowsgoodbye.ui.PCInfoListAdapter;
 import com.google.zxing.integration.android.IntentIntegrator;
 import com.google.zxing.integration.android.IntentResult;
 
 import java.io.IOException;
+import java.util.Objects;
+import java.util.UUID;
 
 public class MainActivity extends AppCompatActivity
         implements NavigationView.OnNavigationItemSelectedListener {
@@ -29,7 +37,7 @@ public class MainActivity extends AppCompatActivity
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
+        Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
         FloatingActionButton fab = findViewById(R.id.fab);
@@ -54,6 +62,24 @@ public class MainActivity extends AppCompatActivity
         navigationView.setNavigationItemSelectedListener(this);
 
         MulticastListeningService.startup(this);
+
+        checkUriStart();
+        new DbHelper(this).addPCInfo(new PCInfo(UUID.randomUUID(), "sdoijfoij", new byte[]{}, new byte[]{}, true));
+
+        RecyclerView recyclerView = findViewById(R.id.pcInfoList);
+        recyclerView.setLayoutManager(new LinearLayoutManager(this));
+        recyclerView.setItemAnimator(new DefaultItemAnimator());
+        recyclerView.setAdapter(new PCInfoListAdapter(this));
+    }
+
+    private void checkUriStart() {
+        Intent intent = getIntent();
+        if (intent.getAction() != null && intent.getAction().equals("android.intent.action.VIEW")) {
+            String pairData = intent.getDataString();
+            pairData = Objects.requireNonNull(pairData).replace("data:", "");
+            Log.d("URLStart","Started with data:"+ pairData);
+            new PairTask().execute(pairData);
+        }
     }
 
     @Override

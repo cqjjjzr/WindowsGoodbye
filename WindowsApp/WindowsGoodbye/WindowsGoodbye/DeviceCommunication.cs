@@ -22,7 +22,17 @@ namespace WindowsGoodbye
         public const string PairingFinishPrefix = "wingb://pair_finish?";
         public const string PairingTerminatePrefix = "wingb://pair_terminate";
 
-        public static DevicePairingContext ActiveDevicePairingContext;
+        private static DevicePairingContext _activeContext;
+        public static DevicePairingContext ActiveDevicePairingContext
+        {
+            get => _activeContext;
+            set
+            {
+                _activeContext?.StopListening();
+                _activeContext = value;
+                value.StartListening();
+            }
+        }
 
         public readonly Guid DeviceId;
         public readonly IBuffer DeviceKey;
@@ -62,6 +72,11 @@ namespace WindowsGoodbye
         public void StopListening()
         {
             UdpEventPublisher.PairingRequestReceived -= ProcessPairingRequest;
+        }
+
+        ~DevicePairingContext()
+        {
+            StopListening();
         }
 
         public void ProcessPairingRequest(string pairPayload, IPAddress remoteIP)

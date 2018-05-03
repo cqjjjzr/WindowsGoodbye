@@ -10,4 +10,9 @@
     <string name="toast_pair_failed">Pairing failed! %1$s: %2$s</string>
     <string name="last_used_prompt">Last used: %1$s</string>
     <string name="last_used_prompt_never">Never used</string>
+    <string name="fingerprint_not_available">Fingerprint not available!</string>
+    <string name="use_fingerprint_to_pair">Use the fingerprint you saved to unlock your phone to proceed.</string>
+    <string name="auth_records">Unlock History:</string>
+    <string name="change_display_name">Change PC Display Name</string>
+    <string name="delete_confimation">Do you really want to delete %1$s(%2$s)? You\'ll be unable to unlock that PC with this device!</string>
 </resources>

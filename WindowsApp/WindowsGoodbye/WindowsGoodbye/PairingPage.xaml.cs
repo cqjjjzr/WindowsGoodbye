@@ -101,8 +101,6 @@ namespace WindowsGoodbye
                     Messenger.Default.Unregister(this);
                 });
             });
-
-            context.StartListening();
             QRCodePanel.Visibility = Visibility.Visible;
         }
 

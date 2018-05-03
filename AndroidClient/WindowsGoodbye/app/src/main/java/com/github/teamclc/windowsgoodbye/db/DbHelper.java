@@ -26,8 +26,7 @@ public class DbHelper extends SQLiteOpenHelper {
     private static final String COLUMN_ID = "Id";
     private static final String COLUMN_DEVICE_ID = "deviceID";
     private static final String COLUMN_DISPLAY_NAME = "displayName";
-    private static final String COLUMN_DEVICE_KEY = "deviceKey";
-    private static final String COLUMN_AUTH_KEY = "authKey";
+    private static final String COLUMN_KEYS = "keys";
     private static final String COLUMN_ENABLED = "enabled";
     private static final String COLUMN_TIME = "time";
 
@@ -42,8 +41,7 @@ public class DbHelper extends SQLiteOpenHelper {
                 + COLUMN_ID + " integer primary key autoincrement, "
                 + COLUMN_DEVICE_ID + " varchar(36), "
                 + COLUMN_DISPLAY_NAME + " text, "
-                + COLUMN_DEVICE_KEY + " blob, "
-                + COLUMN_AUTH_KEY + " blob,"
+                + COLUMN_KEYS + " text, "
                 + COLUMN_ENABLED +  " integer"
                 + ")";
         Log.d("DBHelper", "executing sql: " + sql);
@@ -76,10 +74,10 @@ public class DbHelper extends SQLiteOpenHelper {
         ContentValues values = new ContentValues();
         values.put(COLUMN_DEVICE_ID, info.getDeviceID().toString());
         values.put(COLUMN_DISPLAY_NAME, info.getComputerInfo());
-        values.put(COLUMN_DEVICE_KEY, info.getDeviceKey());
-        values.put(COLUMN_AUTH_KEY, info.getAuthKey());
+        values.put(COLUMN_KEYS, info.getEncryptedKeys());
         values.put(COLUMN_ENABLED, info.isEnabled() ? 1 : 0);
         db.insertOrThrow(TABLE_NAME_PCINFO, null, values);
+        db.close();
     }
 
     public void addAuthRecord(AuthRecord record) {
@@ -88,6 +86,7 @@ public class DbHelper extends SQLiteOpenHelper {
         values.put(COLUMN_DEVICE_ID, record.getDeviceID().toString());
         values.put(COLUMN_TIME, toSQLiteTimestamp(record.getTime()));
         db.insertOrThrow(TABLE_NAME_AUTH_RECORD, null, values);
+        db.close();
     }
 
     public void changeDisplayName(UUID deviceID, String newDisplayName) {
@@ -95,6 +94,7 @@ public class DbHelper extends SQLiteOpenHelper {
         ContentValues values = new ContentValues();
         values.put(COLUMN_DISPLAY_NAME, newDisplayName);
         db.update(TABLE_NAME_PCINFO, values, COLUMN_DEVICE_ID + " = ?", new String[]{ deviceID.toString() });
+        db.close();
     }
 
     public void changeEnabled(UUID deviceID, boolean enabled) {
@@ -102,15 +102,15 @@ public class DbHelper extends SQLiteOpenHelper {
         ContentValues values = new ContentValues();
         values.put(COLUMN_ENABLED, enabled ? 1 : 0);
         db.update(TABLE_NAME_PCINFO, values, COLUMN_DEVICE_ID + " = ?", new String[]{ deviceID.toString() });
+        db.close();
     }
 
     public void deletePCInfo(PCInfo info) {
         SQLiteDatabase db = getWritableDatabase();
-        db.beginTransaction();
         String[] whereArgs =  new String[]{ info.getDeviceID().toString() };
         db.delete(TABLE_NAME_PCINFO, COLUMN_DEVICE_ID + " = ?", whereArgs);
         db.delete(TABLE_NAME_AUTH_RECORD, COLUMN_DEVICE_ID + " = ?", whereArgs);
-        db.setTransactionSuccessful();
+        db.close();
     }
 
     private static final String[] COLUMNS_PCINFO_NOKEY = {
@@ -141,11 +141,12 @@ public class DbHelper extends SQLiteOpenHelper {
             result.add(info);
         }
         cur.close();
+        db.close();
         return result;
     }
 
     private static final String[] COLUMNS_PCINFO_WITHKEY = {
-            COLUMN_DISPLAY_NAME, COLUMN_DEVICE_KEY, COLUMN_AUTH_KEY, COLUMN_ENABLED
+            COLUMN_DISPLAY_NAME, COLUMN_KEYS, COLUMN_ENABLED
     };
     public PCInfo getPCInfoByID(UUID deviceID) {
         SQLiteDatabase db = getReadableDatabase();
@@ -160,10 +161,10 @@ public class DbHelper extends SQLiteOpenHelper {
             info = new PCInfo(
                     deviceID, // id
                     cur.getString(0),  // name
-                    cur.getBlob(1),    // devicekey
-                    cur.getBlob(2),
-                    cur.getInt(3) != 0);   // authkey
+                    cur.getString(1),
+                    cur.getInt(2) != 0);
         cur.close();
+        db.close();
         return info;
     }
 
@@ -180,6 +181,7 @@ public class DbHelper extends SQLiteOpenHelper {
         while (cur.moveToNext())
             result.add(new AuthRecord(deviceID, Timestamp.valueOf(cur.getString(0))));
         cur.close();
+        db.close();
         return result;
     }
 

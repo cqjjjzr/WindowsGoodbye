@@ -21,11 +21,10 @@ import android.view.MenuItem;
 import android.view.View;
 import android.widget.Toast;
 
-import com.github.teamclc.windowsgoodbye.db.DbHelper;
-import com.github.teamclc.windowsgoodbye.model.PCInfo;
 import com.github.teamclc.windowsgoodbye.ui.PCInfoListAdapter;
 import com.google.zxing.integration.android.IntentIntegrator;
 import com.google.zxing.integration.android.IntentResult;
+import com.mtramin.rxfingerprint.RxFingerprint;
 
 import java.io.IOException;
 import java.util.Objects;
@@ -33,12 +32,19 @@ import java.util.UUID;
 
 public class MainActivity extends AppCompatActivity
         implements NavigationView.OnNavigationItemSelectedListener {
+    private PCInfoListAdapter listAdapter;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
+
+        if (!RxFingerprint.isAvailable(this)) {
+            Toast.makeText(this, R.string.fingerprint_not_available, Toast.LENGTH_LONG).show();
+            finish();
+        }
 
         FloatingActionButton fab = findViewById(R.id.fab);
         fab.setOnClickListener(new View.OnClickListener() {
@@ -64,12 +70,13 @@ public class MainActivity extends AppCompatActivity
         MulticastListeningService.startup(this);
 
         checkUriStart();
-        new DbHelper(this).addPCInfo(new PCInfo(UUID.randomUUID(), "sdoijfoij", new byte[]{}, new byte[]{}, true));
+        //new DbHelper(this).addPCInfo(new PCInfo(UUID.randomUUID(), "sdoijfoij", "", true));
 
         RecyclerView recyclerView = findViewById(R.id.pcInfoList);
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
         recyclerView.setItemAnimator(new DefaultItemAnimator());
-        recyclerView.setAdapter(new PCInfoListAdapter(this));
+        listAdapter = new PCInfoListAdapter(this);
+        recyclerView.setAdapter(listAdapter);
     }
 
     private void checkUriStart() {
@@ -84,11 +91,18 @@ public class MainActivity extends AppCompatActivity
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        if (resultCode == PCDetailsActivity.RESULT_CODE) {
+            UUID deviceID = (UUID) data.getSerializableExtra(PCDetailsActivity.RESULT_EXTRA_ID_NAME);
+            if (deviceID == null) return;
+            String newName = data.getStringExtra(PCDetailsActivity.RESULT_EXTRA_NAME);
+            listAdapter.notifyItemChanged(deviceID, newName);
+            return;
+        }
         IntentResult result = IntentIntegrator.parseActivityResult(requestCode, resultCode, data);
         if(result != null) {
             if (result.getContents() != null) {
                 String sresult = result.getContents();
-                Log.d("QRCode","Have scan result in your app activity :"+ sresult);
+                Log.d("QRCode", "Have scan result in your app activity :" + sresult);
                 new PairTask().execute(sresult);
             }
         } else {

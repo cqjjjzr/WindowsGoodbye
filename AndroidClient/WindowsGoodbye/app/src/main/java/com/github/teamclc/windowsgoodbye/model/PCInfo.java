@@ -1,9 +1,10 @@
 package com.github.teamclc.windowsgoodbye.model;
 
+import java.io.Serializable;
 import java.util.Date;
 import java.util.UUID;
 
-public class PCInfo {
+public class PCInfo implements Serializable {
     public static final int KEYS_LENGTH = 32;
 
     private UUID deviceID;
@@ -11,6 +12,7 @@ public class PCInfo {
     private byte[] authKey;
     private String computerInfo;
     private boolean enabled = true;
+    private String encryptedKeys;
 
     private Date lastUsedTime;
 
@@ -25,10 +27,9 @@ public class PCInfo {
         this.authKey = authKey;
     }
 
-    public PCInfo(UUID deviceID, String computerInfo, byte[] deviceKey, byte[] authKey, boolean enabled) {
+    public PCInfo(UUID deviceID, String computerInfo, String encryptedKeys, boolean enabled) {
         this.deviceID = deviceID;
-        this.deviceKey = deviceKey;
-        this.authKey = authKey;
+        this.encryptedKeys = encryptedKeys;
         this.computerInfo = computerInfo;
         this.enabled = enabled;
     }
@@ -79,5 +80,13 @@ public class PCInfo {
 
     public void setEnabled(boolean enabled) {
         this.enabled = enabled;
+    }
+
+    public String getEncryptedKeys() {
+        return encryptedKeys;
+    }
+
+    public void setEncryptedKeys(String encryptedKeys) {
+        this.encryptedKeys = encryptedKeys;
     }
 }

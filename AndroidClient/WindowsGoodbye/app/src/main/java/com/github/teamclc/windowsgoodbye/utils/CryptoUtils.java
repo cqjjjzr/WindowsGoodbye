@@ -1,5 +1,7 @@
 package com.github.teamclc.windowsgoodbye.utils;
 
+import android.util.Log;
+
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
@@ -7,6 +9,7 @@ import java.security.NoSuchAlgorithmException;
 import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
 import javax.crypto.IllegalBlockSizeException;
+import javax.crypto.Mac;
 import javax.crypto.NoSuchPaddingException;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
@@ -34,6 +37,18 @@ public class CryptoUtils {
         try {
             return cipher.doFinal(data);
         } catch (IllegalBlockSizeException | BadPaddingException e) { /* IGNORED */ }
+        return null;
+    }
+
+    private static byte[] calculateHmac(byte[] data, byte[] key) {
+        try  {
+            SecretKeySpec signingKey = new SecretKeySpec(key, "HmacSHA256");
+            Mac mac = Mac.getInstance("HmacSHA256");
+            mac.init(signingKey);
+            return mac.doFinal(data);
+        } catch (NoSuchAlgorithmException | InvalidKeyException e) {
+            Log.e("hmac", "Hmac calculation failed!", e);
+        }
         return null;
     }
 }

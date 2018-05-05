@@ -9,6 +9,6 @@ public class BootReceiver extends BroadcastReceiver {
     @SuppressLint("UnsafeProtectedBroadcastReceiver")
     @Override
     public void onReceive(Context context, Intent intent) {
-        MulticastListeningService.startup(context);
+        UDPListeningService.startup(context);
     }
 }

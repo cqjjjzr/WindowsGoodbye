@@ -15,6 +15,7 @@ namespace WindowsGoodbye
     {
         public const int ReadBufferSize = 1024;
         public const string PairingRequestPrefix = "wingb://pair_req?";
+        public const string PairingTerminate = "wingb://pair_terminate";
         public const int DeviceMulticastPort = 26817;
         public static readonly HostName DeviceMulticastGroupAddress = new HostName("225.67.76.67");
 
@@ -48,10 +49,14 @@ namespace WindowsGoodbye
             dataStream.Dispose();
 
             var info = Encoding.UTF8.GetString(buffer.ToArray());
-            if (!info.StartsWith(PairingRequestPrefix) || info.Length <= PairingRequestPrefix.Length)
-                return;
-            var payload = info.Substring(PairingRequestPrefix.Length);
-            UdpEventPublisher.FirePairingRequestReceived(payload, IPAddress.Parse(remoteAddress.CanonicalName));
+            if (info.StartsWith(PairingRequestPrefix) && info.Length > PairingRequestPrefix.Length)
+            {
+                var payload = info.Substring(PairingRequestPrefix.Length);
+                UdpEventPublisher.FirePairingRequestReceived(payload, IPAddress.Parse(remoteAddress.CanonicalName));
+            } else if (info.StartsWith(PairingTerminate))
+            {
+                UdpEventPublisher.FirePairingTerminateReceived(IPAddress.Parse(remoteAddress.CanonicalName));
+            }
         }
     }
 
@@ -94,6 +99,19 @@ namespace WindowsGoodbye
         public delegate void UdpEventHandler(string payload, IPAddress fromAddress);
 
         public static event UdpEventHandler PairingRequestReceived = delegate { };
+        public static event UdpEventHandler PairingTerminateReceived = delegate { };
+
+        public static void FirePairingTerminateReceived(IPAddress fromAddress)
+        {
+            try
+            {
+                Volatile.Read(ref PairingTerminateReceived)(null, fromAddress);
+            }
+            catch (Exception e)
+            {
+                Debug.Write(e);
+            }
+        }
 
         public static void FirePairingRequestReceived(string payload, IPAddress fromAddress)
         {

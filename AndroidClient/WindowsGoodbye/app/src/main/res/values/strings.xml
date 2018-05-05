@@ -15,4 +15,11 @@
     <string name="auth_records">Unlock History:</string>
     <string name="change_display_name">Change PC Display Name</string>
     <string name="delete_confimation">Do you really want to delete %1$s(%2$s)? You\'ll be unable to unlock that PC with this device!</string>
+    <string name="invalid_name">Invalid display name!</string>
+    <string name="pair_failed_exception">Pair Failed! %1$s</string>
+    <string name="encryption">Encyption</string>
+    <string name="finger_not_recognized">Fingerprint not recognized, try again!</string>
+    <string name="connecting">Success. Connecting to PC...</string>
+    <string name="pair_successful">Successfully paired! PC: %1$s</string>
+    <string name="pair_user_canceled">User canceled pairing!</string>
 </resources>

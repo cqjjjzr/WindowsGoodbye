@@ -71,6 +71,7 @@ public class DbHelper extends SQLiteOpenHelper {
 
     public void addPCInfo(PCInfo info) {
         SQLiteDatabase db = getWritableDatabase();
+        db.delete(TABLE_NAME_PCINFO, COLUMN_DISPLAY_NAME + " IS NULL", null);
         ContentValues values = new ContentValues();
         values.put(COLUMN_DEVICE_ID, info.getDeviceID().toString());
         values.put(COLUMN_DISPLAY_NAME, info.getComputerInfo());
@@ -94,6 +95,14 @@ public class DbHelper extends SQLiteOpenHelper {
         ContentValues values = new ContentValues();
         values.put(COLUMN_DISPLAY_NAME, newDisplayName);
         db.update(TABLE_NAME_PCINFO, values, COLUMN_DEVICE_ID + " = ?", new String[]{ deviceID.toString() });
+        db.close();
+    }
+
+    public void finishActivePairing(String displayName) {
+        SQLiteDatabase db = getWritableDatabase();
+        ContentValues values = new ContentValues();
+        values.put(COLUMN_DISPLAY_NAME, displayName);
+        db.update(TABLE_NAME_PCINFO, values, COLUMN_DISPLAY_NAME + " IS NULL", null);
         db.close();
     }
 
@@ -121,7 +130,7 @@ public class DbHelper extends SQLiteOpenHelper {
     };
     public List<PCInfo> getAllPCInfoNoKey() {
         SQLiteDatabase db = getReadableDatabase();
-        Cursor cur = db.query(TABLE_NAME_PCINFO, COLUMNS_PCINFO_NOKEY, null, null, null, null, null);
+        Cursor cur = db.query(TABLE_NAME_PCINFO, COLUMNS_PCINFO_NOKEY, COLUMN_DISPLAY_NAME + " IS NOT NULL", null, null, null, null);
         ArrayList<PCInfo> result = new ArrayList<>(cur.getColumnCount());
         while (cur.moveToNext()) {
             String idString = cur.getString(0);

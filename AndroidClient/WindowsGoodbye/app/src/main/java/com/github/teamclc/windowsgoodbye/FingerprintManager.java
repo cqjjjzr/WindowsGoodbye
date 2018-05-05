@@ -3,7 +3,9 @@ package com.github.teamclc.windowsgoodbye;
 import android.app.AlertDialog;
 import android.content.Context;
 import android.content.DialogInterface;
+import android.os.AsyncTask;
 import android.util.Base64;
+import android.util.Log;
 import android.widget.Toast;
 
 import com.github.teamclc.windowsgoodbye.model.PCInfo;
@@ -18,7 +20,7 @@ public class FingerprintManager {
     private static AlertDialog createAskForEncryptFingerprintDialog(Context context) {
         AlertDialog.Builder builder;
         builder = new AlertDialog.Builder(context, android.R.style.Theme_Material_Dialog_Alert);
-        return builder.setTitle("Delete entry")
+        return builder.setTitle(context.getString(R.string.encryption))
                 .setMessage(R.string.use_fingerprint_to_pair)
                 .setNegativeButton(android.R.string.cancel, new DialogInterface.OnClickListener() {
                     public void onClick(DialogInterface dialog, int which) {
@@ -29,8 +31,8 @@ public class FingerprintManager {
                 .create();
     }
 
-    public static void encryptByFingerprint(final Context context, PCInfo info) {
-        AlertDialog dialog = createAskForEncryptFingerprintDialog(context);
+    public static void encryptByFingerprint(final Context context, final PCInfo info, final Consumer<String> onNext) {
+        final AlertDialog dialog = createAskForEncryptFingerprintDialog(context);
 
         String str =
                 Base64.encodeToString(info.getDeviceKey(), Base64.DEFAULT)
@@ -42,14 +44,18 @@ public class FingerprintManager {
                     public void accept(FingerprintEncryptionResult fingerprintEncryptionResult) throws Exception {
                         switch (fingerprintEncryptionResult.getResult()) {
                             case FAILED:
-                                Toast.makeText(context, "Fingerprint not recognized, try again!", Toast.LENGTH_LONG).show();
+                                dialog.setMessage(context.getString(R.string.finger_not_recognized));
+                                dialog.setIcon(R.drawable.ic_fingerprint_failed);
                                 break;
                             case HELP:
-                                Toast.makeText(context, fingerprintEncryptionResult.getMessage(), Toast.LENGTH_LONG).show();
+                                dialog.setMessage(fingerprintEncryptionResult.getMessage());
+                                dialog.setIcon(R.drawable.ic_fingerprint_failed);
                                 break;
                             case AUTHENTICATED:
-                                fingerprintEncryptionResult.getEncrypted();
-                                Toast.makeText(context, "Successfully authenticated!", Toast.LENGTH_LONG).show();
+                                Toast.makeText(context, R.string.connecting, Toast.LENGTH_SHORT).show();
+                                new OnNextTask().execute(onNext, fingerprintEncryptionResult.getEncrypted());
+                                onNext.accept(fingerprintEncryptionResult.getEncrypted());
+                                dialog.cancel();
                                 break;
                         }
                     }
@@ -68,5 +74,19 @@ public class FingerprintManager {
             }
         });
         dialog.show();
+    }
+
+    @SuppressWarnings("unchecked")
+    public static class OnNextTask extends AsyncTask<Object, Void, Void> {
+        @Override
+        protected Void doInBackground(Object... objects) {
+            try {
+                ((Consumer<String>) objects[0]).accept((String) objects[1]);
+            } catch (Exception e) {
+                Log.e("OnNextTask", "Error calling onNext func!", e);
+                //e.printStackTrace();
+            }
+            return null;
+        }
     }
 }

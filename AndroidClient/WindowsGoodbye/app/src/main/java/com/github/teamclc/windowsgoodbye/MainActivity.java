@@ -67,7 +67,7 @@ public class MainActivity extends AppCompatActivity
         NavigationView navigationView = findViewById(R.id.nav_view);
         navigationView.setNavigationItemSelectedListener(this);
 
-        MulticastListeningService.startup(this);
+        UDPListeningService.startup(this);
 
         checkUriStart();
         //new DbHelper(this).addPCInfo(new PCInfo(UUID.randomUUID(), "sdoijfoij", "", true));

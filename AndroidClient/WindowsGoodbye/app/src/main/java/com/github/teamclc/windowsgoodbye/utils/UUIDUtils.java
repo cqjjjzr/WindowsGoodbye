@@ -1,5 +1,7 @@
 package com.github.teamclc.windowsgoodbye.utils;
 
+import android.util.Log;
+
 import java.nio.ByteBuffer;
 import java.util.UUID;
 
@@ -10,14 +12,11 @@ public class UUIDUtils {
 
     public static UUID fromBytes(byte[] bytes, int off) {
         if (bytes.length < off + 16) throw new IllegalArgumentException("length < 16");
-        long msb = 0;
-        long lsb = 0;
-        for (int i = 0; i < 8; i++)
-            msb = (msb << 8) | (bytes[i] & 0xff);
-        for (int i = 8; i < 16; i++)
-            lsb = (lsb << 8) | (bytes[i] & 0xff);
-
-        return new UUID(msb, lsb);
+        ByteBuffer bb = ByteBuffer.wrap(bytes);
+        long firstLong = bb.getLong();
+        long secondLong = bb.getLong();
+        Log.v("uuid", "uuid converting: msb=" + firstLong + ", lsb=" + secondLong);
+        return new UUID(firstLong, secondLong);
     }
 
     public static byte[] toBytes(UUID uuid) {

@@ -12,6 +12,7 @@ import android.view.View;
 import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.github.teamclc.windowsgoodbye.db.DbHelper;
 import com.github.teamclc.windowsgoodbye.model.AuthRecord;
@@ -76,6 +77,9 @@ public class PCDetailsActivity extends AppCompatActivity implements View.OnClick
             @Override
             public void onClick(DialogInterface dialog, int which) {
                 String newName = input.getText().toString();
+                if (newName.trim().isEmpty()) {
+                    Toast.makeText(PCDetailsActivity.this, R.string.invalid_name, Toast.LENGTH_SHORT).show();
+                }
                 info.setComputerInfo(newName);
                 new DbHelper(PCDetailsActivity.this).changeDisplayName(info.getDeviceID(), newName);
                 displayNameView.setText(newName);

@@ -37,12 +37,10 @@
         </activity>
 
         <service
-            android:name=".MulticastListeningService"
-            android:enabled="true"
-            android:exported="true"
-            android:process="system">
+            android:name=".UDPListeningService"
+            android:enabled="true">
             <intent-filter>
-                <action android:name="com.github.teamclc.windowsgoodbye.MulticastListeningService" />
+                <action android:name="com.github.teamclc.windowsgoodbye.UDPListeningService" />
             </intent-filter>
         </service>
 

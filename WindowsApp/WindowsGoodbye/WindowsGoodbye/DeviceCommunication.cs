@@ -55,7 +55,7 @@ namespace WindowsGoodbye
         public string GeneratePairData()
         {
             var stream = new MemoryStream();
-            stream.Write(DeviceId.ToByteArray());
+            stream.Write(DeviceId.ToBigEndian().ToByteArray());
             stream.Write(DeviceKey.ToArray());
             stream.Write(AuthKey.ToArray());
             stream.Write(PairEncryptKey);
@@ -67,16 +67,19 @@ namespace WindowsGoodbye
         public void StartListening()
         {
             UdpEventPublisher.PairingRequestReceived += ProcessPairingRequest;
+            UdpEventPublisher.PairingTerminateReceived += PairingTerminateReceived;
         }
 
         public void StopListening()
         {
             UdpEventPublisher.PairingRequestReceived -= ProcessPairingRequest;
+            UdpEventPublisher.PairingTerminateReceived -= PairingTerminateReceived;
         }
 
-        ~DevicePairingContext()
+        private void PairingTerminateReceived(string s, IPAddress fromAddress)
         {
-            StopListening();
+            ActiveDevicePairingContext = null;
+            Messenger.Default.Send(new PairingFailedMessage { Reason = Utils.GetBackgroundI18n("Pairing.UserCanceled") });
         }
 
         public void ProcessPairingRequest(string pairPayload, IPAddress remoteIP)
@@ -86,7 +89,7 @@ namespace WindowsGoodbye
             if (rawBytes.Length <= Utils.GuidLength) return;
             var deviceIdBytes = new byte[Utils.GuidLength];
             Array.Copy(rawBytes, deviceIdBytes, Utils.GuidLength);
-            var deviceId = new Guid(deviceIdBytes);
+            var deviceId = new Guid(deviceIdBytes).ToLittleEndian();
             if (deviceId != DeviceId) return;
 
             // 注意由于已经检测到了设备，下方导致的任何错误都必须直接退出Pair过程并发送通知
@@ -152,12 +155,13 @@ namespace WindowsGoodbye
             // TODO: 这里是否需要设备返回，以保证没有发生配对之后手机断开造成电脑注册了手机却没有登记电脑信息的情况？
             var payload = Convert.ToBase64String(CryptoTools.EncryptAES(Encoding.UTF8.GetBytes(computerInfo), PairEncryptKey));
             var bytes = Encoding.UTF8.GetBytes(PairingFinishPrefix + payload);
-            var stream = await UnicastListener.DatagramSocket.GetOutputStreamAsync(new HostName(deviceInfo.LastConnectedHost),
-                UnicastListener.DeviceUnicastPort.ToString());
-            Windows.Storage.Streams.Buffer buf = new Windows.Storage.Streams.Buffer((uint) bytes.Length);
-            bytes.CopyTo(buf);
-            await stream.WriteAsync(buf);
-            stream.Dispose();
+            using (var stream = (await UnicastListener.DatagramSocket.GetOutputStreamAsync(
+                new HostName(deviceInfo.LastConnectedHost),
+                UnicastListener.DeviceUnicastPort.ToString())).AsStreamForWrite())
+            {
+                await stream.WriteAsync(bytes, 0, bytes.Length);
+                await stream.FlushAsync();
+            }
 
             DisposeKeys();
             _isFinished = true;

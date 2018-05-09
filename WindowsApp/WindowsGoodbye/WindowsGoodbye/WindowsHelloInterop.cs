@@ -29,6 +29,7 @@ namespace WindowsGoodbye
             if (registrationResult.Status != SecondaryAuthenticationFactorRegistrationStatus.Started)
                 throw new OperationCanceledException(registrationResult.Status.ToString());
             await registrationResult.Registration.FinishRegisteringDeviceAsync(null); //config data limited to 4096 bytes
+            BackgroundHelper.RegisterIfNeeded();
         }
 
         public static async Task UnregisterDevice(DeviceInfo info)
@@ -36,6 +37,8 @@ namespace WindowsGoodbye
             try
             {
                 await SecondaryAuthenticationFactorRegistration.UnregisterDeviceAsync(info.DeviceId.ToString());
+                if ((await SecondaryAuthenticationFactorRegistration.FindAllRegisteredDeviceInfoAsync(SecondaryAuthenticationFactorDeviceFindScope.AllUsers)).Count <= 0)
+                    BackgroundHelper.Unregister();
             }
             catch (Exception e)
             {

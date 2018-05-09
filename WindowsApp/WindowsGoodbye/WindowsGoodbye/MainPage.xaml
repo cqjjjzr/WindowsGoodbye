@@ -20,7 +20,7 @@
             <NavigationViewItem x:Uid="PairingNavItem" Icon="Link" Content="Pair" Tag="pair" Background="{x:Null}"/>
         </NavigationView.MenuItems>
         
-        <Frame x:Name="ContentFrame" Margin="24" Navigated="ContentFrame_Navigated">
+        <Frame x:Name="ContentFrame" Margin="24" Navigated="ContentFrame_Navigated" Navigating="ContentFrame_Navigating">
             <Frame.ContentTransitions>
                 <TransitionCollection>
                     <NavigationThemeTransition/>

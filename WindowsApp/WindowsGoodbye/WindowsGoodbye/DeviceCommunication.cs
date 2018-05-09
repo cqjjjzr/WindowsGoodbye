@@ -1,8 +1,6 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
-using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Runtime.InteropServices.WindowsRuntime;
@@ -30,7 +28,7 @@ namespace WindowsGoodbye
             {
                 _activeContext?.StopListening();
                 _activeContext = value;
-                value.StartListening();
+                value?.StartListening();
             }
         }
 
@@ -39,7 +37,7 @@ namespace WindowsGoodbye
         public readonly IBuffer AuthKey;
         public readonly byte[] PairEncryptKey;
         public HostName LastConnectedHost;
-        private volatile bool _isFinished = false;
+        private volatile bool _isFinished;
 
         public DevicePairingContext() : this(CryptographicBuffer.GenerateRandom(32), CryptographicBuffer.GenerateRandom(32)) {  }
 
@@ -148,31 +146,42 @@ namespace WindowsGoodbye
             }
         }
 
-        public async void FinishPairing(DeviceInfo deviceInfo, string computerInfo)
+        private void FinishPairing(DeviceInfo deviceInfo, string computerInfo)
         {
             if (_isFinished) return;
             // 配对完成，通知设备
             // TODO: 这里是否需要设备返回，以保证没有发生配对之后手机断开造成电脑注册了手机却没有登记电脑信息的情况？
-            var payload = Convert.ToBase64String(CryptoTools.EncryptAES(Encoding.UTF8.GetBytes(computerInfo), PairEncryptKey));
-            var bytes = Encoding.UTF8.GetBytes(PairingFinishPrefix + payload);
-            using (var stream = (await UnicastListener.DatagramSocket.GetOutputStreamAsync(
-                new HostName(deviceInfo.LastConnectedHost),
-                UnicastListener.DeviceUnicastPort.ToString())).AsStreamForWrite())
-            {
-                await stream.WriteAsync(bytes, 0, bytes.Length);
-                await stream.FlushAsync();
-            }
-
-            DisposeKeys();
             _isFinished = true;
-            
-            IPHelperUtils.GetMACFromIP(deviceInfo.LastConnectedHost, result =>
+
+            IPHelperUtils.GetMACFromIP(deviceInfo.LastConnectedHost, (result, last) =>
+            {
+                if (last)
                 {
-                    deviceInfo.DeviceMacAddress = result.FirstOrDefault();
+                    Task.Run(async () =>
+                    {
+                        var payload =
+                            Convert.ToBase64String(CryptoTools.EncryptAES(Encoding.UTF8.GetBytes(computerInfo),
+                                PairEncryptKey));
+                        var bytes = Encoding.UTF8.GetBytes(PairingFinishPrefix + payload);
+                        using (var stream = (await UnicastListener.DatagramSocket.GetOutputStreamAsync(
+                            new HostName(deviceInfo.LastConnectedHost),
+                            UnicastListener.DeviceUnicastPort.ToString())).AsStreamForWrite())
+                        {
+                            await stream.WriteAsync(bytes, 0, bytes.Length);
+                            await stream.FlushAsync();
+                        }
+                    });
+
+                    //WindowsHelloInterop.RegisterDevice(deviceInfo, DeviceKey, AuthKey).Wait();
+                    Messenger.Default.Send(new PairingFinishedMessage());
+                    if (deviceInfo.DeviceMacAddress == null) deviceInfo.DeviceMacAddress = "";
                     App.DbContext.Add(deviceInfo);
                     App.DbContext.SaveChanges();
-                    Messenger.Default.Send(new PairingFinishedMessage());
-                });
+                    return true;
+                }
+                deviceInfo.DeviceMacAddress = result;
+                return false;
+            });
         }
 
         private async void FailPairing(string messageI18n, string append = "")

@@ -1,11 +1,14 @@
 package com.github.teamclc.windowsgoodbye;
 
+import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.bluetooth.BluetoothAdapter;
 import android.content.Context;
 import android.os.AsyncTask;
+import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.os.Message;
 import android.util.Base64;
 import android.util.Log;
 import android.widget.Toast;
@@ -28,6 +31,7 @@ import io.reactivex.functions.Consumer;
 public class PairingTools {
     private static final int PAIRING_MULTICAST_PORT = 26817;
     private static final int PAIRING_RESULT_PORT = 26817;
+    public static final String ADDED_PCINFO_NAME_KEY = "name";
     private static InetAddress PAIRING_MULTICAST_ADDR;
 
     static {
@@ -86,6 +90,7 @@ public class PairingTools {
     }
 
     private static class RequestPairTask extends AsyncTask<Object, String, Void> {
+        @SuppressLint("StaticFieldLeak")
         private Context context;
 
         @Override
@@ -162,7 +167,12 @@ public class PairingTools {
             new Handler(Looper.getMainLooper()).post(new Runnable() {
                 @Override
                 public void run() {
-                    Toast.makeText(context, context.getString(R.string.pair_successful, name), Toast.LENGTH_LONG).show();
+                    Message msg = MainActivity.msgHandler.obtainMessage(4707764);
+                    Bundle b = new Bundle();
+                    b.putString(ADDED_PCINFO_NAME_KEY, name);
+                    msg.setData(b);
+                    MainActivity.msgHandler.sendMessage(msg);
+                    //Toast.makeText(context, context.getString(R.string.pair_successful, name), Toast.LENGTH_LONG).show();
                 }
             });
         } catch (final Exception ex) {

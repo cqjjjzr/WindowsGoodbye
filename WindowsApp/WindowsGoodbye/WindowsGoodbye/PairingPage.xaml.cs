@@ -86,7 +86,7 @@ namespace WindowsGoodbye
                     ProgressRing.IsActive = false;
                     WaitingPanel.Visibility = Visibility.Collapsed;
                     FailPanel.Visibility = Visibility.Visible;
-                    Messenger.Default.Unregister(this);
+                    Messenger.Default.Unregister<PairingFailedMessage>(this);
                 });
             });
 
@@ -94,11 +94,10 @@ namespace WindowsGoodbye
             {
                 await Dispatcher.RunAsync(CoreDispatcherPriority.Normal, () =>
                 {
-                    QRCodePanel.Visibility = Visibility.Collapsed;
                     ProgressRing.IsActive = false;
                     WaitingPanel.Visibility = Visibility.Collapsed;
                     SuccessPanel.Visibility = Visibility.Visible;
-                    Messenger.Default.Unregister(this);
+                    Messenger.Default.Unregister<PairingFinishedMessage>(this);
                 });
             });
             QRCodePanel.Visibility = Visibility.Visible;

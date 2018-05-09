@@ -96,11 +96,12 @@
     <Compile Include="App.xaml.cs">
       <DependentUpon>App.xaml</DependentUpon>
     </Compile>
+    <Compile Include="BackgroundHelper.cs" />
     <Compile Include="DeviceCommunication.cs" />
     <Compile Include="DeviceDetailsPage.xaml.cs">
       <DependentUpon>DeviceDetailsPage.xaml</DependentUpon>
     </Compile>
-    <Compile Include="GuidExtensionscs.cs" />
+    <Compile Include="GuidExtensions.cs" />
     <Compile Include="HomePage.xaml.cs">
       <DependentUpon>HomePage.xaml</DependentUpon>
     </Compile>
@@ -197,6 +198,10 @@
     <ProjectReference Include="..\DataModel\DataModel.csproj">
       <Project>{cada3623-f770-4bc2-8041-373cc315fc11}</Project>
       <Name>DataModel</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\WindowsGoodbyeAuthTask\WindowsGoodbyeAuthTask.csproj">
+      <Project>{899e7fdb-85f4-4946-a19a-8e5713168438}</Project>
+      <Name>WindowsGoodbyeAuthTask</Name>
     </ProjectReference>
   </ItemGroup>
   <PropertyGroup Condition=" '$(VisualStudioVersion)' == '' or '$(VisualStudioVersion)' &lt; '14.0' ">

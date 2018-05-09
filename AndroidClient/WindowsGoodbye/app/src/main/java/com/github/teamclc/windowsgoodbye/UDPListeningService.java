@@ -26,8 +26,8 @@ public class UDPListeningService extends Service {
     public static final int MULTICAST_PORT = 26817;
     public static final int UNICAST_CAST = 26818;
     public static InetAddress MULTICAST_GROUP;
-    public MulticastListeningTask task;
-    public UnicastListeningTask task2;
+    public MulticastListeningTask mtask;
+    public UnicastListeningTask utask;
 
     static {
         try {
@@ -43,10 +43,10 @@ public class UDPListeningService extends Service {
         Intent notificationIntent = new Intent(this, MainActivity.class);
 
         Log.i("multicast", "try to start multicast");
-        task = new MulticastListeningTask();
-        task.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
-        task2 = new UnicastListeningTask();
-        task2.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+        mtask = new MulticastListeningTask();
+        mtask.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+        utask = new UnicastListeningTask();
+        utask.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
         PendingIntent pendingIntent = PendingIntent.getActivity(this, 0,
                 notificationIntent, 0);
         Notification notification = new NotificationCompat.Builder(this, "default")
@@ -67,8 +67,8 @@ public class UDPListeningService extends Service {
 
     @Override
     public void onDestroy() {
-        if (task != null && !task.isCancelled()) task.cancel(true);
-        task = null;
+        if (mtask != null && !mtask.isCancelled()) mtask.cancel(true);
+        mtask = null;
         state = false;
         stopForeground(true);
     }
@@ -80,6 +80,7 @@ public class UDPListeningService extends Service {
         context.startService(starter);
     }
 
+    @SuppressLint("StaticFieldLeak")
     private abstract class UDPListeningTask
          extends AsyncTask<Void, Object, Void> {
         private DatagramSocket socket;

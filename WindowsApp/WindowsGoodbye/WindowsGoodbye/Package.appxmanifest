@@ -21,13 +21,16 @@
         <uap:SplashScreen Image="Assets\SplashScreen.png" />
       </uap:VisualElements>
       <Extensions>
+        <Extension Category="windows.backgroundTasks" EntryPoint="WindowsGoodbyeAuthTask.WindowsGoodbyeAuthTask">
+          <BackgroundTasks>
+            <Task Type="systemEvent" />
+          </BackgroundTasks>
+        </Extension>
         <uap:Extension Category="windows.appService">
           <uap:AppService Name="IPHelperService" />
         </uap:Extension>
         <desktop:Extension Category="windows.fullTrustProcess" Executable="Assets\iphelper.exe">
           <desktop:FullTrustProcess>
-            <desktop:ParameterGroup GroupId="IPToMac" Parameters="-i" />
-            <desktop:ParameterGroup GroupId="MacToIP" Parameters="-m" />
           </desktop:FullTrustProcess>
         </desktop:Extension>
       </Extensions>

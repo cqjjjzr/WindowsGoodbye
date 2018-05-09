@@ -23,6 +23,8 @@ namespace WindowsGoodbye
 
         public static async void StartListening()
         {
+            if (DatagramSocket != null)
+                await DatagramSocket.CancelIOAsync();
             DatagramSocket = new DatagramSocket();
             DatagramSocket.MessageReceived += async (sender, args) =>
             {
@@ -68,6 +70,8 @@ namespace WindowsGoodbye
 
         public static async void StartListening()
         {
+            if (DatagramSocket != null)
+                await DatagramSocket.CancelIOAsync();
             DatagramSocket = new DatagramSocket();
             DatagramSocket.MessageReceived += async (sender, args) =>
             {

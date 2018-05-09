@@ -4,9 +4,9 @@ using System.Linq;
 using System.Net;
 using System.Net.NetworkInformation;
 using System.Net.Sockets;
+using System.Threading;
 using System.Threading.Tasks;
 using Windows.ApplicationModel.AppService;
-using Windows.Foundation;
 using Windows.Foundation.Collections;
 
 namespace IPHelper
@@ -40,9 +40,8 @@ namespace IPHelper
             processingIPAddr = t.Result;
 
             //Console.ReadKey();
-            mode = args[2];
 #if DEBUG
-            Console.WriteLine("Mode: " + args[2]);
+            Console.WriteLine("Mode: " + mode);
 #endif
             switch (mode)
             {
@@ -83,19 +82,17 @@ namespace IPHelper
                                     }
                                 }
 
-                                var rst = NmapUtils.Scan($"{ipInfo.Address}/{totalBits}", processingIPAddr);
-                                if (rst != null)
-                                {
-                                    SendResult(rst);
-                                }
+                                NmapUtils.Scan($"{ipInfo.Address}/{totalBits}", processingIPAddr);
                             }
                     }
                     break;
                 default:
+                    Thread.Sleep(2000);
+                    //appServiceConnection.Dispose();
                     Environment.Exit(-1);
                     break;
             }
-
+            Thread.Sleep(1000);
             Exit();
         }
 
@@ -112,6 +109,14 @@ namespace IPHelper
             Console.WriteLine("Established.");
 #endif
             appServiceConnection.RequestReceived += AppServiceConnection_RequestReceived;
+            appServiceConnection.ServiceClosed += (sender, args) =>
+            {
+#if DEBUG
+                Console.WriteLine("What's the fucking shit?");
+                //Console.ReadKey();
+#endif
+                //Environment.Exit(0);
+            };
             var addressResult = await appServiceConnection.SendMessageAsync(new ValueSet { ["op"] = "addr" });
 #if DEBUG
             Console.WriteLine("Address result: " + addressResult.Status);
@@ -123,9 +128,12 @@ namespace IPHelper
                 Console.WriteLine("Error getting address! " + addressResult.Status);
                 //Console.ReadKey();
 #endif
+                Thread.Sleep(2000);
+                //appServiceConnection.Dispose();
                 Environment.Exit(-1);
             }
             processingIPAddr = (string)addressResult.Message["addr"];
+            mode = (string) addressResult.Message["mode"];
 #if DEBUG
             Console.WriteLine("Got address! " + processingIPAddr);
             //Console.ReadKey();
@@ -133,20 +141,25 @@ namespace IPHelper
             return processingIPAddr;
         }
 
-        private static void AppServiceConnection_RequestReceived(AppServiceConnection sender, AppServiceRequestReceivedEventArgs args)
+        private static async void AppServiceConnection_RequestReceived(AppServiceConnection sender, AppServiceRequestReceivedEventArgs args)
         {
             var msg = args.Request.Message;
             switch ((string) msg["op"])
             {
                 case "exit":
+                    await args.Request.SendResponseAsync(new ValueSet());
                     Exit();
                     Environment.Exit(0);
                     break;
             }
         }
 
-        private static async void SendResult(string addr)
+        public static async void SendResult(string addr)
         {
+#if DEBUG
+            Console.WriteLine("Send result!" + addr);
+            //Console.ReadKey();
+#endif
             await appServiceConnection.SendMessageAsync(new ValueSet
             {
                 ["op"] = "result",
@@ -154,15 +167,23 @@ namespace IPHelper
                 ["orig"] = processingIPAddr,
                 ["addr"] = addr
             });
+#if DEBUG
+            //Console.ReadKey();
+#endif
         }
 
         private static async void Exit()
         {
+#if DEBUG
+            Console.WriteLine("Exiting!");
+            //Console.ReadKey();
+#endif
             await appServiceConnection.SendMessageAsync(new ValueSet
             {
                 ["op"] = "exit",
                 ["status"] = "ok"
             });
+            //appServiceConnection.Dispose();
         }
     }
 }

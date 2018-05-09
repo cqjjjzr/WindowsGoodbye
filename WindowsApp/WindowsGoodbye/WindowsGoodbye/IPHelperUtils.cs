@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -9,8 +8,6 @@ using Windows.ApplicationModel.Activation;
 using Windows.ApplicationModel.AppService;
 using Windows.ApplicationModel.Background;
 using Windows.Foundation.Collections;
-using Windows.UI.Xaml;
-using Microsoft.EntityFrameworkCore.ChangeTracking;
 
 // ReSharper disable InconsistentNaming
 
@@ -26,75 +23,103 @@ namespace WindowsGoodbye
             if (!(args.TaskInstance.TriggerDetails is AppServiceTriggerDetails)) return;
             var appServiceDeferral = args.TaskInstance.GetDeferral();
             AppServiceConnection connection = ((AppServiceTriggerDetails)args.TaskInstance.TriggerDetails).AppServiceConnection;
+            args.TaskInstance.Canceled += (sender, reason) =>
+            {
+                try
+                {
+                    appServiceDeferral.Complete();
+                }
+                catch (Exception)
+                { // ignored
+                }
+            };
             if (Contexts.Count <= 0)
             {
                 await IPHelperUtils.TerminateIPHelper(connection);
+                appServiceDeferral.Complete();
                 return;
             }
             var context = Contexts.First();
             context.Connection = connection;
+            context.Deferral = appServiceDeferral;
+            args.TaskInstance.Canceled += (sender, reason) => context.DoFinal();
             connection.RequestReceived += IPHelperUtils.ConnectionOnRequestReceivedAsync;
-            connection.ServiceClosed += (sender, eventArgs) =>
-            {
-                context.After(context.Result);
-                Contexts.Remove(context);
-            };
+            connection.ServiceClosed += IPHelperUtils.OnServiceClosed;
+            //appServiceDeferral.Complete();
         }
     }
 
     public static class IPHelperUtils
     {
-        public delegate void ProcessResult(ISet<string> result);
+        public delegate bool ProcessResult(string result, bool last);
 
         public static async void GetMACFromIP(string ip, ProcessResult after)
         {
-            await RunHelper(ip, after, "IPToMac");
+            await RunHelper(ip, after, "=i");
         }
 
         public static async void GetIPFromMAC(string mac, ProcessResult after)
         {
-            await RunHelper(mac, after, "MacToIP");
+            await RunHelper(mac, after, "-m");
         }
 
-        private static async Task RunHelper(string addr, ProcessResult after, string parameter)
+        private static async Task RunHelper(string addr, ProcessResult after, string mode)
         {
             var ctxt = new IPHelperContext
             {
                 Connection = null,
                 OriginalAddress = addr,
-                Result = new HashSet<string>(),
+                Mode = mode,
                 After = after
             };
 
             App.Contexts.Add(ctxt);
-            await FullTrustProcessLauncher.LaunchFullTrustProcessForCurrentAppAsync(parameter);
+            try
+            {
+                await FullTrustProcessLauncher.LaunchFullTrustProcessForCurrentAppAsync();
+            }
+            catch (Exception)
+            {
+                App.Contexts.Remove(ctxt);
+                after(null, true);
+            }
         }
 
         public static async void ConnectionOnRequestReceivedAsync(AppServiceConnection sender, AppServiceRequestReceivedEventArgs args)
         {
+            //var deferral = args.GetDeferral();
             var req = args.Request;
             var msg = req.Message;
             var ctxts = App.Contexts.Where(ctx => ctx.Connection == sender);
-            if (!ctxts.Any())
+            var ctxt = ctxts.FirstOrDefault();
+            if (ctxt == null)
             {
                 await args.Request.SendResponseAsync(new ValueSet());
                 await TerminateIPHelper(sender);
+                //deferral.Complete();
                 return;
             }
 
-            var ctxt = ctxts.First();
             switch ((string) msg["op"])
             {
                 case "addr":
-                    await req.SendResponseAsync(new ValueSet {["addr"] = ctxt.OriginalAddress });
+                    await req.SendResponseAsync(new ValueSet {["addr"] = ctxt.OriginalAddress, ["mode"] = ctxt.Mode });
                     break;
                 case "result":
-                    ctxt.Result.Add((string) msg["addr"]);
+                    //Debug.WriteLine("received!!!!!!!!");
+                    bool cont = ctxt.After((string) msg["addr"], false);
+                    Thread.Sleep(1000);
                     await req.SendResponseAsync(new ValueSet { ["op"] = "ok" });
+                    if (!cont) await TerminateIPHelper(ctxt.Connection);
                     break;
                 case "exit":
-                    ctxt.After(ctxt.Result);
-                    App.Contexts.Remove(ctxt);
+                    await args.Request.SendResponseAsync(new ValueSet());
+                    ctxt.Deferral.Complete();
+                    ctxt.DoFinal();
+                    ctxt.Connection.ServiceClosed -= OnServiceClosed;
+                    break;
+                default:
+                    await req.SendResponseAsync(new ValueSet { ["wtf"] = "What the fuck u've said?" });
                     break;
             }
         }
@@ -103,18 +128,44 @@ namespace WindowsGoodbye
         {
             await conn.SendMessageAsync(new ValueSet { ["op"] = "exit" }).AsTask();
         }
+
+        public static void OnServiceClosed(object sender, AppServiceClosedEventArgs args)
+        {
+            var ctxts = App.Contexts.Where(ctx => ctx.Connection == sender);
+            var ctxt = ctxts.FirstOrDefault();
+            if (ctxt == null) return;
+            try
+            {
+                ctxt.Deferral.Complete();
+            }
+            catch (Exception)
+            {
+                //ignored
+            }
+            ctxt.DoFinal();
+        }
     }
 
     public class IPHelperContext
     {
         public string OriginalAddress { get; set; }
-        public ISet<string> Result { get; set; }
         public AppServiceConnection Connection { get; set; }
         public IPHelperUtils.ProcessResult After { get; set; }
+        public BackgroundTaskDeferral Deferral { get; set; }
+        public string Mode { get; set; }
+        public volatile bool Finished;
 
         public async void Terminate()
         {
             await IPHelperUtils.TerminateIPHelper(Connection);
+        }
+
+        public void DoFinal()
+        {
+            if (Finished) return;
+            Finished = true;
+            App.Contexts.Remove(this);
+            After(null, true);
         }
     }
 }

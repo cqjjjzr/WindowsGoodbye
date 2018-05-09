@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices.WindowsRuntime;
@@ -94,6 +95,9 @@ namespace WindowsGoodbye
                 // Ensure the current window is active
                 Window.Current.Activate();
             }
+
+            // We register this when first device is paired.
+            //BackgroundHelper.RegisterIfNeeded();
 
             MulticastListener.StartListening();
             UnicastListener.StartListening();

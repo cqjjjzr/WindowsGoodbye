@@ -55,7 +55,7 @@ public class FingerprintManager {
                                 Toast.makeText(context, R.string.connecting, Toast.LENGTH_SHORT).show();
                                 new OnNextTask().execute(onNext, fingerprintEncryptionResult.getEncrypted());
                                 onNext.accept(fingerprintEncryptionResult.getEncrypted());
-                                dialog.cancel();
+                                dialog.dismiss();
                                 break;
                         }
                     }
@@ -66,11 +66,12 @@ public class FingerprintManager {
                     }
                 });
 
+        dialog.setCancelable(false);
         dialog.setButton(DialogInterface.BUTTON_NEGATIVE, context.getText(android.R.string.cancel), new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialog, int which) {
                 disposable.dispose();
-                dialog.cancel();
+                dialog.dismiss();
             }
         });
         dialog.show();

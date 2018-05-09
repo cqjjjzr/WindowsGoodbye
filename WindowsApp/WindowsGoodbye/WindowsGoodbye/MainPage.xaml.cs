@@ -32,7 +32,7 @@ namespace WindowsGoodbye
                 else ContentFrame.Navigate(typeof(DeviceDetailsPage), msg.DeviceInfo);
             });
         }
-
+        
         private void ContentFrame_Navigated(object sender, NavigationEventArgs e)
         {
             NaviView.Header = resourceLoader.GetString("_Title/" + e.SourcePageType.Name);
@@ -43,6 +43,7 @@ namespace WindowsGoodbye
             if (args.IsSettingsInvoked)
             {
                 // TODO Settings
+                return;
             }
             var item = sender.MenuItems.OfType<NavigationViewItem>().First(x => (string)x.Content == (string)args.InvokedItem);
             switch ((string)item.Tag)
@@ -50,19 +51,20 @@ namespace WindowsGoodbye
                 case "home":
                     ContentFrame.Navigate(typeof(HomePage));
                     break;
+                case "pair":
+                    ContentFrame.Navigate(typeof(PairingPage));
+                    break;
             }
         }
 
         private void NavView_SelectionChanged(NavigationView sender, NavigationViewSelectionChangedEventArgs args)
         {
-            if (args.IsSettingsSelected) return;
-            //var item = sender.MenuItems.OfType<NavigationViewItem>().First(x => (string)x.Content == (string)args.SelectedItem);
-            switch ((string) ((NavigationViewItem) args.SelectedItem).Tag)
-            {
-                case "pair":
-                    ContentFrame.Navigate(typeof(PairingPage));
-                    break;
-            }
+            
+        }
+
+        private void ContentFrame_Navigating(object sender, NavigatingCancelEventArgs e)
+        {
+            DevicePairingContext.ActiveDevicePairingContext = null;
         }
     }
 }

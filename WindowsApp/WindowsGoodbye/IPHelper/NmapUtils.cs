@@ -15,11 +15,13 @@ namespace IPHelper
     {
         public const int NmapTimeoutMillis = 4 * 1000;
 
-        public static string Scan(string addr, string mac)
+        public static void Scan(string addr, string mac)
         {
+            FileSystemWatcher watcher = null;
+            string tempFile = null;
             try
             {
-                var tempFile = Path.GetTempFileName();
+                tempFile = Path.GetTempFileName();
                 string path = Assembly.GetExecutingAssembly().CodeBase;
                 string directory = Path.GetDirectoryName(path);
                 if (directory.StartsWith("file:\\")) directory = directory.Replace("file:\\", "");
@@ -30,21 +32,39 @@ namespace IPHelper
                     WindowStyle = ProcessWindowStyle.Hidden
                 };
                 var process = Process.Start(info);
+                watcher = new FileSystemWatcher
+                {
+                    Path = Path.GetTempPath(),
+                    Filter = tempFile,
+                };
+                watcher.Changed += (sender, args) => { ProcessChanged(tempFile, mac); };
                 if (process != null) process.WaitForExit(NmapTimeoutMillis);
-                else return null;
+                else return;
                 if (!process.HasExited) process.Kill();
-
-                if (!File.Exists(tempFile)) return null;
-                var content = File.ReadAllText(tempFile);
-                File.Delete(tempFile);
-                if (!content.Contains("</nmaprun>")) content += "\n</nmaprun>"; // process terminates early so no end for root element, we need to add it manually
-
-                return ParseXml(content, mac);
             }
             catch (Exception)
             {
-                return null;
+                // ignored
             }
+            finally
+            {
+                if (watcher != null)
+                    watcher.EnableRaisingEvents = false;
+                if (tempFile != null && File.Exists(tempFile)) File.Delete(tempFile);
+            }
+        }
+
+
+        public static ISet<string> Book = new HashSet<string>();
+        private static void ProcessChanged(string path, string mac)
+        {
+            var content = File.ReadAllText(path);
+            File.Delete(path);
+            if (!content.Contains("</nmaprun>")) content += "\n</nmaprun>"; // process terminates early so no end for root element, we need to add it manually
+            string addr = ParseXml(content, mac);
+            if (addr == null || Book.Contains(addr)) return;
+            Book.Add(addr);
+            Program.SendResult(addr);
         }
 
         public static string ParseXml(string content, string mac)

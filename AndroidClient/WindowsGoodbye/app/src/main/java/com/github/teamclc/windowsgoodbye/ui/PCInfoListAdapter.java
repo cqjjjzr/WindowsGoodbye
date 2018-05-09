@@ -28,7 +28,7 @@ public class PCInfoListAdapter extends android.support.v7.widget.RecyclerView.Ad
     private List<PCInfo> infos;
     public PCInfoListAdapter(Activity ctx) {
         this.ctx = ctx;
-        infos = new DbHelper(ctx).getAllPCInfoNoKey();
+        refresh();
         Log.d("PCInfoListAdapter", "Rows:" + infos.size());
     }
 
@@ -78,6 +78,15 @@ public class PCInfoListAdapter extends android.support.v7.widget.RecyclerView.Ad
             i++;
         }
         if (i < infos.size()) notifyItemChanged(i);
+    }
+
+    public void notifyAdded() {
+        refresh();
+        notifyItemInserted(infos.size() - 1);
+    }
+
+    private void refresh() {
+        infos = new DbHelper(ctx).getAllPCInfoNoKey();
     }
 
     class PCInfoItemHolder extends RecyclerView.ViewHolder {

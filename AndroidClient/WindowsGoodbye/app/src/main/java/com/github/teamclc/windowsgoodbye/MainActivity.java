@@ -4,6 +4,8 @@ import android.annotation.SuppressLint;
 import android.content.Intent;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Message;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.NavigationView;
 import android.support.design.widget.Snackbar;
@@ -21,6 +23,7 @@ import android.view.MenuItem;
 import android.view.View;
 import android.widget.Toast;
 
+import com.github.teamclc.windowsgoodbye.model.PCInfo;
 import com.github.teamclc.windowsgoodbye.ui.PCInfoListAdapter;
 import com.google.zxing.integration.android.IntentIntegrator;
 import com.google.zxing.integration.android.IntentResult;
@@ -33,10 +36,12 @@ import java.util.UUID;
 public class MainActivity extends AppCompatActivity
         implements NavigationView.OnNavigationItemSelectedListener {
     private PCInfoListAdapter listAdapter;
+    public static Handler msgHandler = null;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        initHandler();
         setContentView(R.layout.activity_main);
         Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
@@ -53,8 +58,6 @@ public class MainActivity extends AppCompatActivity
                 IntentIntegrator intentIntegrator = new IntentIntegrator(MainActivity.this);
                 intentIntegrator.setPrompt(getString(R.string.qr_prompt));
                 intentIntegrator.initiateScan();
-                Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
-                        .setAction("Action", null).show();
             }
         });
 
@@ -70,13 +73,27 @@ public class MainActivity extends AppCompatActivity
         UDPListeningService.startup(this);
 
         checkUriStart();
-        //new DbHelper(this).addPCInfo(new PCInfo(UUID.randomUUID(), "sdoijfoij", "", true));
+        //new DbHelper(this).notifyAdded(new PCInfo(UUID.randomUUID(), "sdoijfoij", "", true));
 
         RecyclerView recyclerView = findViewById(R.id.pcInfoList);
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
         recyclerView.setItemAnimator(new DefaultItemAnimator());
         listAdapter = new PCInfoListAdapter(this);
         recyclerView.setAdapter(listAdapter);
+    }
+
+    @SuppressLint("HandlerLeak")
+    private void initHandler() {
+        msgHandler = new Handler() {
+            @Override
+            public void handleMessage(Message msg) {
+                if (msg.what == 4707764) {
+                    String name = msg.getData().getString(PairingTools.ADDED_PCINFO_NAME_KEY);
+                    Snackbar.make(MainActivity.this.findViewById(R.id.coordinatorLayout), getString(R.string.pair_successful, name), Snackbar.LENGTH_LONG).show();
+                    listAdapter.notifyAdded();
+                }
+            }
+        };
     }
 
     private void checkUriStart() {
@@ -179,5 +196,10 @@ public class MainActivity extends AppCompatActivity
         DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
         drawer.closeDrawer(GravityCompat.START);
         return true;
+    }
+
+    @Override
+    protected void onDestroy() {
+        msgHandler = null;
     }
 }

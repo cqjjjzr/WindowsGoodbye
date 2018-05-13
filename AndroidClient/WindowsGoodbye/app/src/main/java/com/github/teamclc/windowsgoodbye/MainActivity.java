@@ -35,6 +35,8 @@ import java.util.UUID;
 
 public class MainActivity extends AppCompatActivity
         implements NavigationView.OnNavigationItemSelectedListener {
+    public static final int ADDED_HANDLER_WHAT = 4707764; // bilibili av4707764 sounds sooooooooooooooooo good
+
     private PCInfoListAdapter listAdapter;
     public static Handler msgHandler = null;
 
@@ -87,7 +89,7 @@ public class MainActivity extends AppCompatActivity
         msgHandler = new Handler() {
             @Override
             public void handleMessage(Message msg) {
-                if (msg.what == 4707764) {
+                if (msg.what == ADDED_HANDLER_WHAT) {
                     String name = msg.getData().getString(PairingTools.ADDED_PCINFO_NAME_KEY);
                     Snackbar.make(MainActivity.this.findViewById(R.id.coordinatorLayout), getString(R.string.pair_successful, name), Snackbar.LENGTH_LONG).show();
                     listAdapter.notifyAdded();
@@ -200,6 +202,7 @@ public class MainActivity extends AppCompatActivity
 
     @Override
     protected void onDestroy() {
+        super.onDestroy();
         msgHandler = null;
     }
 }

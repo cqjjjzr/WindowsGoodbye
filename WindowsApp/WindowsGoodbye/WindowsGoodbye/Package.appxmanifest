@@ -21,14 +21,17 @@
         <uap:SplashScreen Image="Assets\SplashScreen.png" />
       </uap:VisualElements>
       <Extensions>
+        <uap:Extension Category="windows.appService">
+          <uap:AppService Name="IPDiscoverService" />
+        </uap:Extension>
+        <uap:Extension Category="windows.appService">
+          <uap:AppService Name="IPHelperService" />
+        </uap:Extension>
         <Extension Category="windows.backgroundTasks" EntryPoint="WindowsGoodbyeAuthTask.WindowsGoodbyeAuthTask">
           <BackgroundTasks>
             <Task Type="systemEvent" />
           </BackgroundTasks>
         </Extension>
-        <uap:Extension Category="windows.appService">
-          <uap:AppService Name="IPHelperService" />
-        </uap:Extension>
         <desktop:Extension Category="windows.fullTrustProcess" Executable="Assets\iphelper.exe">
           <desktop:FullTrustProcess>
           </desktop:FullTrustProcess>

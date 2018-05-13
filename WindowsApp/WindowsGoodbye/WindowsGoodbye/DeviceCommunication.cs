@@ -157,7 +157,7 @@ namespace WindowsGoodbye
             {
                 if (last)
                 {
-                    Task.Run(async () =>
+                    Task.Run((Action) (async () =>
                     {
                         var payload =
                             Convert.ToBase64String(CryptoTools.EncryptAES(Encoding.UTF8.GetBytes(computerInfo),
@@ -170,7 +170,7 @@ namespace WindowsGoodbye
                             await stream.WriteAsync(bytes, 0, bytes.Length);
                             await stream.FlushAsync();
                         }
-                    });
+                    }));
 
                     //WindowsHelloInterop.RegisterDevice(deviceInfo, DeviceKey, AuthKey).Wait();
                     Messenger.Default.Send(new PairingFinishedMessage());

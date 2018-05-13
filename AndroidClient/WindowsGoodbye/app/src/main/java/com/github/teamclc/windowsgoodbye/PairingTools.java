@@ -167,7 +167,7 @@ public class PairingTools {
             new Handler(Looper.getMainLooper()).post(new Runnable() {
                 @Override
                 public void run() {
-                    Message msg = MainActivity.msgHandler.obtainMessage(4707764);
+                    Message msg = MainActivity.msgHandler.obtainMessage(MainActivity.ADDED_HANDLER_WHAT);
                     Bundle b = new Bundle();
                     b.putString(ADDED_PCINFO_NAME_KEY, name);
                     msg.setData(b);

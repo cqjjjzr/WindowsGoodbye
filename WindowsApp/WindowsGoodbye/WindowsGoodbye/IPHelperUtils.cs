@@ -21,31 +21,71 @@ namespace WindowsGoodbye
         {
             base.OnBackgroundActivated(args);
             if (!(args.TaskInstance.TriggerDetails is AppServiceTriggerDetails)) return;
-            var appServiceDeferral = args.TaskInstance.GetDeferral();
             AppServiceConnection connection = ((AppServiceTriggerDetails)args.TaskInstance.TriggerDetails).AppServiceConnection;
-            args.TaskInstance.Canceled += (sender, reason) =>
+            var appServiceDeferral = args.TaskInstance.GetDeferral();
+            switch (connection.AppServiceName)
             {
-                try
-                {
+                case "IPHelperService":
+                    args.TaskInstance.Canceled += (sender, reason) =>
+                    {
+                        try
+                        {
+                            appServiceDeferral.Complete();
+                        }
+                        catch (Exception)
+                        { // ignored
+                        }
+                    };
+                    if (Contexts.Count <= 0)
+                    {
+                        await IPHelperUtils.TerminateIPHelper(connection);
+                        appServiceDeferral.Complete();
+                        return;
+                    }
+                    var context = Contexts.First();
+                    context.Connection = connection;
+                    context.Deferral = appServiceDeferral;
+                    args.TaskInstance.Canceled += (sender, reason) => context.DoFinal();
+                    connection.RequestReceived += IPHelperUtils.ConnectionOnRequestReceivedAsync;
+                    connection.ServiceClosed += IPHelperUtils.OnServiceClosed;
+                    break;
+                case "IPDiscoverService":
+                    args.TaskInstance.Canceled += (sender, reason) =>
+                    {
+                        try
+                        {
+                            appServiceDeferral.Complete();
+                        }
+                        catch (Exception)
+                        { // ignored
+                        }
+                    };
+                    var mac = await connection.SendMessageAsync(new ValueSet { ["op"] = "addr" });
+                    IPHelperUtils.GetIPFromMAC((string) mac.Message["addr"], (result, last) =>
+                    {
+                        if (last)
+                            appServiceDeferral.Complete();
+                        if (result == null) return true;
+                        connection.SendMessageAsync(new ValueSet {["op"] = "result", ["addr"] = result}).GetAwaiter()
+                            .GetResult();
+                        return true;
+                    });
+                    connection.ServiceClosed += (sender, a) =>
+                    {
+                        try
+                        {
+                            appServiceDeferral.Complete();
+                        }
+                        catch (Exception)
+                        {
+                            //ignored
+                        }
+                    };
+                    break;
+                default:
                     appServiceDeferral.Complete();
-                }
-                catch (Exception)
-                { // ignored
-                }
-            };
-            if (Contexts.Count <= 0)
-            {
-                await IPHelperUtils.TerminateIPHelper(connection);
-                appServiceDeferral.Complete();
-                return;
+                    break;
             }
-            var context = Contexts.First();
-            context.Connection = connection;
-            context.Deferral = appServiceDeferral;
-            args.TaskInstance.Canceled += (sender, reason) => context.DoFinal();
-            connection.RequestReceived += IPHelperUtils.ConnectionOnRequestReceivedAsync;
-            connection.ServiceClosed += IPHelperUtils.OnServiceClosed;
-            //appServiceDeferral.Complete();
         }
     }
 

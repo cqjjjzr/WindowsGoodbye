@@ -79,15 +79,19 @@ namespace WindowsGoodbyeAuthTask
             var deviceList = await SecondaryAuthenticationFactorRegistration.FindAllRegisteredDeviceInfoAsync(SecondaryAuthenticationFactorDeviceFindScope.User);
             var db = new DatabaseContext();
             var devicesInDb = db.Devices.ToList();
+            IPDiscover.DiscoverIP();
             
             foreach (var device in deviceList)
             {
                 var deviceInDb = devicesInDb.Find(d => d.DeviceId.ToString() == device.DeviceId);
                 if (deviceInDb == null) continue;
-                var session = new DeviceAuthSession();
-                session.IPAddresses.Add(deviceInDb.LastConnectedHost);
-                session.MACAddress = deviceInDb.DeviceMacAddress;
-                session.DeviceID = device.DeviceId;
+                var session = new DeviceAuthSession
+                {
+                    LastIP = deviceInDb.LastConnectedHost,
+                    MACAddress = deviceInDb.DeviceMacAddress,
+                    DeviceID = device.DeviceId
+                };
+                deviceSessions.Add(session);
             }
             while (auth)
             {
@@ -96,8 +100,8 @@ namespace WindowsGoodbyeAuthTask
                     switch (session.Status)
                     {
                         case DeviceStatus.NotConnected:
-                            var ips = new HashSet<string>(session.IPAddresses);
-                            if (ips.Count <= 0 && string.IsNullOrWhiteSpace(session.MACAddress))
+                            var ips = session.FindIPs()?.ToList();
+                            if ((ips == null || !ips.Any()) && string.IsNullOrWhiteSpace(session.MACAddress) && IPDiscover.IsDiscoveryCompleted)
                             {
                                 session.Status = DeviceStatus.Unreachable;
                                 continue;
@@ -105,6 +109,15 @@ namespace WindowsGoodbyeAuthTask
 
                             var payload = Convert.ToBase64String(Encoding.UTF8.GetBytes(session.DeviceID));
                             var data = Encoding.UTF8.GetBytes(AuthRequestPrefix + payload);
+                            if (!string.IsNullOrWhiteSpace(session.LastIP))
+                                try
+                                {
+                                    UDPListener.Send(session.LastIP, data);
+                                }
+                                catch (Exception)
+                                {
+                                    // ignored
+                                }
                             foreach (var ip in ips)
                             {
                                 try
@@ -113,7 +126,7 @@ namespace WindowsGoodbyeAuthTask
                                 }
                                 catch (Exception)
                                 {
-                                    ips.Remove(ip);
+                                    // ignored
                                 }
                             }
                             UDPListener.Send(UDPListener.DeviceMulticastGroupAddress, data);

@@ -50,9 +50,12 @@ namespace IPHelper
                     SendResult(ArpUtils.GetMacFromIp(processingIPAddr));
                     break;
                 case "-m":
-                    var fromArp = ArpUtils.GetIpFromMac(processingIPAddr);
-                    if (fromArp != null)
-                        SendResult(fromArp);
+                    if (processingIPAddr != null)
+                    {
+                        var fromArp = ArpUtils.GetIpFromMac(processingIPAddr);
+                        if (fromArp != null)
+                            SendResult(fromArp);
+                    }
 
                     var nics = NetworkInterface.GetAllNetworkInterfaces().ToList();
                     nics.RemoveAll(adapter =>

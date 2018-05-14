@@ -88,7 +88,6 @@ namespace WindowsGoodbyeAuthTask
                 session.IPAddresses.Add(deviceInDb.LastConnectedHost);
                 session.MACAddress = deviceInDb.DeviceMacAddress;
                 session.DeviceID = device.DeviceId;
-                session.DiscoverIP();
             }
             while (auth)
             {

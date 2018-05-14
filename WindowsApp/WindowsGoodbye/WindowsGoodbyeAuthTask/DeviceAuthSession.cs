@@ -35,9 +35,6 @@ namespace WindowsGoodbyeAuthTask
                 var msg = args.Request.Message;
                 switch (msg["op"])
                 {
-                    case "addr":
-                        req.SendResponseAsync(new ValueSet{["addr"] = MACAddress}).GetAwaiter().GetResult();
-                        break;
                     case "result":
                         IPAddresses.Add((string) msg["addr"]);
                         req.SendResponseAsync(new ValueSet()).GetAwaiter().GetResult();

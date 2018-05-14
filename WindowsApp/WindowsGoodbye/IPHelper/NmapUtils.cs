@@ -61,10 +61,11 @@ namespace IPHelper
             var content = File.ReadAllText(path);
             File.Delete(path);
             if (!content.Contains("</nmaprun>")) content += "\n</nmaprun>"; // process terminates early so no end for root element, we need to add it manually
-            string addr = ParseXml(content, mac);
+            Program.SendResult(content);
+            /*string addr = ParseXml(content, mac);
             if (addr == null || Book.Contains(addr)) return;
             Book.Add(addr);
-            Program.SendResult(addr);
+            Program.SendResult(addr);*/
         }
 
         public static string ParseXml(string content, string mac)

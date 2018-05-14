@@ -154,10 +154,10 @@ namespace IPHelper
             }
         }
 
-        public static async void SendResult(string addr)
+        public static async void SendResult(string result)
         {
 #if DEBUG
-            Console.WriteLine("Send result!" + addr);
+            Console.WriteLine("Send result!" + result);
             //Console.ReadKey();
 #endif
             await appServiceConnection.SendMessageAsync(new ValueSet
@@ -165,7 +165,7 @@ namespace IPHelper
                 ["op"] = "result",
                 ["mode"] = mode,
                 ["orig"] = processingIPAddr,
-                ["addr"] = addr
+                ["content"] = result
             });
 #if DEBUG
             //Console.ReadKey();

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Xml.Linq;
 using Windows.ApplicationModel;
 using Windows.ApplicationModel.Activation;
 using Windows.ApplicationModel.AppService;
@@ -60,8 +61,7 @@ namespace WindowsGoodbye
                         { // ignored
                         }
                     };
-                    var mac = await connection.SendMessageAsync(new ValueSet { ["op"] = "addr" });
-                    IPHelperUtils.GetIPFromMAC((string) mac.Message["addr"], (result, last) =>
+                    IPHelperUtils.GetIPFromMAC((result, last) =>
                     {
                         if (last)
                             appServiceDeferral.Complete();
@@ -91,16 +91,16 @@ namespace WindowsGoodbye
 
     public static class IPHelperUtils
     {
-        public delegate bool ProcessResult(string result, bool last);
+        public delegate bool ProcessResult(object result, bool last);
 
         public static async void GetMACFromIP(string ip, ProcessResult after)
         {
             await RunHelper(ip, after, "=i");
         }
 
-        public static async void GetIPFromMAC(string mac, ProcessResult after)
+        public static async void GetIPFromMAC(ProcessResult after)
         {
-            await RunHelper(mac, after, "-m");
+            await RunHelper("", after, "-m");
         }
 
         private static async Task RunHelper(string addr, ProcessResult after, string mode)
@@ -147,7 +147,15 @@ namespace WindowsGoodbye
                     break;
                 case "result":
                     //Debug.WriteLine("received!!!!!!!!");
-                    bool cont = ctxt.After((string) msg["addr"], false);
+                    string content = (string) msg["result"];
+                    object result;
+                    if (ctxt.Mode == "-m" && content.Contains("<"))
+                    {
+                        result = new Dictionary<string, string>();
+                        ParseXmlTo(content, (Dictionary<string, string>) result);
+                    }
+                    else result = content;
+                    bool cont = string.IsNullOrWhiteSpace(content) || ctxt.After(result, false);
                     Thread.Sleep(1000);
                     await req.SendResponseAsync(new ValueSet { ["op"] = "ok" });
                     if (!cont) await TerminateIPHelper(ctxt.Connection);
@@ -161,6 +169,38 @@ namespace WindowsGoodbye
                 default:
                     await req.SendResponseAsync(new ValueSet { ["wtf"] = "What the fuck u've said?" });
                     break;
+            }
+        }
+
+        private static void ParseXmlTo(string content, Dictionary<string, string> result)
+        {
+            /*var doc = new XmlDocument();
+            doc.LoadXml(content);
+
+            if (doc.DocumentElement == null) return null;
+
+            var hosts = doc.DocumentElement.GetElementsByTagName("host");
+            foreach (XmlNode host in hosts)
+            {
+                var addresses = new List<XmlNode>(host.ChildNodes);
+            }*/
+
+            var doc = XDocument.Parse(content);
+            var hostElems = doc.Descendants("host")
+                .Where(host => host.Descendants("address").Any(element => element.Attribute("addrtype")?.Value == "mac"));
+            foreach (var hostElem in hostElems)
+            {
+                var adds = hostElem.Descendants("address").ToList();
+                var mac = adds
+                    .FirstOrDefault(element => element.Attribute("addrtype")?.Value == "mac")
+                    ?.Attribute("addr")
+                    ?.Value;
+                var addr = adds
+                    .FirstOrDefault(element => element.Attribute("addrtype")?.Value == "ipv4")
+                    ?.Attribute("addr")
+                    ?.Value;
+                if (result.ContainsKey(mac)) result[mac] = addr;
+                else result.Add(mac, addr);
             }
         }
 

@@ -108,6 +108,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="DeviceAuthSession.cs" />
+    <Compile Include="IPDiscover.cs" />
     <Compile Include="UDPListener.cs" />
     <Compile Include="WindowsGoodbyeAuthTask.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

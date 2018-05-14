@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Net;
@@ -179,7 +180,8 @@ namespace WindowsGoodbye
                     App.DbContext.SaveChanges();
                     return true;
                 }
-                deviceInfo.DeviceMacAddress = result;
+                if (result is string s)
+                    deviceInfo.DeviceMacAddress = s;
                 return false;
             });
         }

@@ -35,8 +35,7 @@ namespace WindowsGoodbyeAuthTask
                         {
                             foreach (var pair in dict)
                             {
-                                if (IPAddresses.ContainsKey(pair.Key)) IPAddresses[pair.Key] = pair.Value;
-                                else IPAddresses.Add(pair.Key, pair.Value);
+                                IPAddresses.AddOrUpdate(pair.Key, s => pair.Value, (s1, s2) => pair.Value);
                             }
                         }
                         req.SendResponseAsync(new ValueSet()).GetAwaiter().GetResult();

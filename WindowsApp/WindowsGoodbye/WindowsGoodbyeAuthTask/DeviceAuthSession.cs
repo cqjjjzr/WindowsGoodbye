@@ -17,6 +17,7 @@ namespace WindowsGoodbyeAuthTask
         public string DeviceID { get; set; }
         public volatile string SucceedIPAddress = null;
         public string LastIP = null;
+        public volatile byte[] ResultBytes = null;
 
         public IEnumerable<string> FindIPs()
         {
@@ -30,7 +31,7 @@ namespace WindowsGoodbyeAuthTask
     {
         NotConnected,
         Established,
-        AuthRequested,
+        Authenticated,
         Unreachable
     }
 }

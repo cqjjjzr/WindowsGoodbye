@@ -38,6 +38,7 @@ namespace WindowsGoodbyeAuthTask
 
             _exitEvent.WaitOne();
             UDPListener.StopListening();
+            findAuth = false;
             _deferral.Complete();
         }
 
@@ -74,7 +75,7 @@ namespace WindowsGoodbyeAuthTask
             }
         }
 
-        internal volatile bool findAuth = false;
+        internal static volatile bool findAuth = false;
         internal static volatile List<DeviceAuthSession> deviceSessions = new List<DeviceAuthSession>();
         private async Task DiscoverDevice()
         {
@@ -141,10 +142,13 @@ namespace WindowsGoodbyeAuthTask
                                     }
                                 }
                             }
-                            UDPListener.Send(UDPListener.DeviceMulticastGroupAddress, data);
+                            await UDPListener.Send(UDPListener.DeviceMulticastGroupAddress, data);
                             break;
                         case DeviceStatus.Unreachable:
                             deviceSessions.Remove(session);
+                            break;
+                        case DeviceStatus.Established:
+                            findAuth = false;
                             break;
                     }
                 }
@@ -223,10 +227,11 @@ namespace WindowsGoodbyeAuthTask
                 var result = session.ResultBytes;
                 if (result == null || result.Length <= 2 || result.Length != 2 + result[0] + result[1])
                 {
-                    await SecondaryAuthenticationFactorAuthentication.ShowNotificationMessageAsync("",
+                    return;
+                    /*await SecondaryAuthenticationFactorAuthentication.ShowNotificationMessageAsync("",
                         SecondaryAuthenticationFactorAuthenticationMessage.TryAgain);
                     await auth.AbortAuthenticationAsync("No data got.");
-                    continue;
+                    continue;*/
                 }
 
                 var deviceHmac = new Buffer(result[0]);

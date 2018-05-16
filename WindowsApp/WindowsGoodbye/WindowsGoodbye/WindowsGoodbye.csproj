@@ -101,7 +101,6 @@
     <Compile Include="DeviceDetailsPage.xaml.cs">
       <DependentUpon>DeviceDetailsPage.xaml</DependentUpon>
     </Compile>
-    <Compile Include="GuidExtensions.cs" />
     <Compile Include="HomePage.xaml.cs">
       <DependentUpon>HomePage.xaml</DependentUpon>
     </Compile>

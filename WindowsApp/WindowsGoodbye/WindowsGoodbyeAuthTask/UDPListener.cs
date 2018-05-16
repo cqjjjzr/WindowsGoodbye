@@ -35,10 +35,10 @@ namespace WindowsGoodbyeAuthTask
 
         public static async void Send(string hostname, byte[] data)
         {
-            Send(new HostName(hostname), data);
+            await Send(new HostName(hostname), data);
         }
 
-        public static async void Send(HostName hostname, byte[] data)
+        public static async Task Send(HostName hostname, byte[] data)
         {
             using (var stream = (await DatagramSocket.GetOutputStreamAsync(
                 hostname,
@@ -71,11 +71,21 @@ namespace WindowsGoodbyeAuthTask
                 var guid = new Guid(payload);
                 var session = WindowsGoodbyeAuthTask.deviceSessions.FirstOrDefault(s => s.DeviceInDb.DeviceId == guid);
                 if (session != null) session.Status = DeviceStatus.Established;
+                WindowsGoodbyeAuthTask.findAuth = false;
             } else if (info.StartsWith(WindowsGoodbyeAuthTask.AuthResponsePrefix) &&
                        info.Length > WindowsGoodbyeAuthTask.AuthResponsePrefix.Length)
             {
                 var payload = Convert.FromBase64String(info.Substring(WindowsGoodbyeAuthTask.DeviceAlivePrefix.Length));
                 if (payload.Length <= 18) return;
+                var guidBytes = new byte[16];
+                Array.Copy(payload, guidBytes, 16);
+                var guid = new Guid(guidBytes);
+                var session = WindowsGoodbyeAuthTask.deviceSessions.FirstOrDefault(s => s.DeviceInDb.DeviceId == guid);
+                if (session == null) return;
+                var resultBytes = new byte[payload.Length - 16];
+                Array.Copy(payload, 16, resultBytes, 0, resultBytes.Length);
+                session.ResultBytes = resultBytes;
+                WindowsGoodbyeAuthTask.AuthResultReceivedEvent.Set();
             }
         }
     }

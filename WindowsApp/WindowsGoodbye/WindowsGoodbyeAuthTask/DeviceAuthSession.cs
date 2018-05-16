@@ -6,6 +6,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Windows.ApplicationModel.AppService;
 using Windows.Foundation.Collections;
+using WindowsGoodbye;
 
 namespace WindowsGoodbyeAuthTask
 {
@@ -18,6 +19,7 @@ namespace WindowsGoodbyeAuthTask
         public volatile string SucceedIPAddress = null;
         public string LastIP = null;
         public volatile byte[] ResultBytes = null;
+        public DeviceInfo DeviceInDb;
 
         public IEnumerable<string> FindIPs()
         {

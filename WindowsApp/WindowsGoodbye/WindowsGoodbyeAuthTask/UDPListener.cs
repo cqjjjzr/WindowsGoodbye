@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Net;
 using System.Runtime.InteropServices.WindowsRuntime;
 using System.Text;
@@ -62,14 +63,20 @@ namespace WindowsGoodbyeAuthTask
             dataStream.Dispose();
 
             var info = Encoding.UTF8.GetString(buffer.ToArray());
-            // TODO process unicast
+            if (info.StartsWith(WindowsGoodbyeAuthTask.DeviceAlivePrefix) &&
+                info.Length > WindowsGoodbyeAuthTask.DeviceAlivePrefix.Length)
+            {
+                var payload = Convert.FromBase64String(info.Substring(WindowsGoodbyeAuthTask.DeviceAlivePrefix.Length));
+                if (payload.Length != 16) return;
+                var guid = new Guid(payload);
+                var session = WindowsGoodbyeAuthTask.deviceSessions.FirstOrDefault(s => s.DeviceInDb.DeviceId == guid);
+                if (session != null) session.Status = DeviceStatus.Established;
+            } else if (info.StartsWith(WindowsGoodbyeAuthTask.AuthResponsePrefix) &&
+                       info.Length > WindowsGoodbyeAuthTask.AuthResponsePrefix.Length)
+            {
+                var payload = Convert.FromBase64String(info.Substring(WindowsGoodbyeAuthTask.DeviceAlivePrefix.Length));
+                if (payload.Length <= 18) return;
+            }
         }
-    }
-
-    internal static class UdpEventPublisher
-    {
-        public delegate void UdpEventHandler(string payload, IPAddress fromAddress);
-        
-
     }
 }

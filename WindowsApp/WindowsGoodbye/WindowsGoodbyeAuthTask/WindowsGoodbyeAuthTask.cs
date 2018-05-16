@@ -20,6 +20,8 @@ namespace WindowsGoodbyeAuthTask
     {
         internal const string DeviceDiscoverPrefix = "wingb://auth_discover?";
         internal const string AuthRequestPrefix = "wingb://auth_req?";
+        internal const string DeviceAlivePrefix = "wingb://auth_alive?";
+        internal const string AuthResponsePrefix = "wingb://auth_resp?";
 
         private BackgroundTaskDeferral _deferral;
         private ManualResetEvent _exitEvent;
@@ -41,7 +43,6 @@ namespace WindowsGoodbyeAuthTask
 
         private async void OnStageChanged(object sender, SecondaryAuthenticationFactorAuthenticationStageChangedEventArgs e)
         {
-            
             switch (e.StageInfo.Stage)
             {
                 case SecondaryAuthenticationFactorAuthenticationStage.WaitingForUserConfirmation:
@@ -95,7 +96,8 @@ namespace WindowsGoodbyeAuthTask
                 {
                     LastIP = deviceInDb.LastConnectedHost,
                     MACAddress = deviceInDb.DeviceMacAddress,
-                    DeviceID = device.DeviceId
+                    DeviceID = device.DeviceId,
+                    DeviceInDb = deviceInDb
                 };
                 deviceSessions.Add(session);
             }
@@ -149,11 +151,13 @@ namespace WindowsGoodbyeAuthTask
                 Thread.Sleep(1000);
             }
 
-            Auth(deviceSessions.FirstOrDefault(s => s.Status == DeviceStatus.Established), devicesInDb);
+            Auth(deviceSessions.FirstOrDefault(s => s.Status == DeviceStatus.Established));
+            CurrentSession = null;
         }
 
+        internal static volatile DeviceAuthSession CurrentSession;
         internal static ManualResetEvent AuthResultReceivedEvent = new ManualResetEvent(false);
-        private async void Auth(DeviceAuthSession session, IList<DeviceInfo> devices)
+        private async void Auth(DeviceAuthSession session)
         {
             if (session == null)
             {
@@ -162,13 +166,7 @@ namespace WindowsGoodbyeAuthTask
                 return;
             }
 
-            var deviceInDb = devices.FirstOrDefault(i => i.DeviceId.ToString() == session.DeviceID);
-            if (deviceInDb == null)
-            {
-                await SecondaryAuthenticationFactorAuthentication.ShowNotificationMessageAsync("",
-                    SecondaryAuthenticationFactorAuthenticationMessage.Invalid);
-                return;
-            }
+            var deviceInDb = session.DeviceInDb;
             await SecondaryAuthenticationFactorAuthentication.ShowNotificationMessageAsync(deviceInDb.DeviceFriendlyName,
                 SecondaryAuthenticationFactorAuthenticationMessage.ReadyToSignIn);
 
@@ -196,6 +194,7 @@ namespace WindowsGoodbyeAuthTask
             }
 
             var auth = authResult.Authentication;
+            CurrentSession = session;
             for (int retries = 0; retries < 3; retries++)
             {
                 var svcAuthHmac = auth.ServiceAuthenticationHmac;
@@ -239,6 +238,7 @@ namespace WindowsGoodbyeAuthTask
                 {
                     case SecondaryAuthenticationFactorFinishAuthenticationStatus.Completed:
                         // The credential data is collected and ready for unlock
+                        CurrentSession = null;
                         return;
                     default:
                         await SecondaryAuthenticationFactorAuthentication.ShowNotificationMessageAsync("",
@@ -246,6 +246,9 @@ namespace WindowsGoodbyeAuthTask
                         break;
                 }
             }
+            await SecondaryAuthenticationFactorAuthentication.ShowNotificationMessageAsync(deviceInDb.DeviceFriendlyName,
+                SecondaryAuthenticationFactorAuthenticationMessage.UnauthorizedUser);
+            CurrentSession = null;
         }
     }
 }
